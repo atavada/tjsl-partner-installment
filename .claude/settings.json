@@ -1,0 +1,31 @@
+{
+	"permissions": {
+		"allow": [
+			"Bash(php artisan test:*)",
+			"Bash(php artisan test)",
+			"Bash(php artisan make:*)",
+			"Bash(./vendor/bin/pint:*)",
+			"Bash(./vendor/bin/pest:*)",
+			"Bash(npm run lint)",
+			"Bash(npm run types)",
+			"Bash(npm run build)",
+			"Bash(git diff:*)",
+			"Bash(git status)"
+		],
+		"deny": [
+			"Read(./.env)",
+			"Read(./.env.*)",
+			"Bash(php artisan migrate:fresh:*)",
+			"Bash(php artisan db:wipe:*)",
+			"Bash(rm -rf:*)"
+		]
+	},
+	"hooks": {
+		"PostToolUse": [
+			{
+				"matcher": "Edit|Write",
+				"hooks": [{ "type": "command", "command": ".claude/hooks/format.sh" }]
+			}
+		]
+	}
+}

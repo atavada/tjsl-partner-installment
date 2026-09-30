@@ -23,3 +23,7 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
+
+# Claude Code local files
+CLAUDE.local.md
+.claude/settings.local.json
