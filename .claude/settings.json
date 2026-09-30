@@ -27,5 +27,8 @@
 				"hooks": [{ "type": "command", "command": ".claude/hooks/format.sh" }]
 			}
 		]
+	},
+	"enabledPlugins": {
+		"superpowers@claude-plugins-official": false
 	}
 }
