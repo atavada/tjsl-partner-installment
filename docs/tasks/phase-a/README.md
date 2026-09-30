@@ -28,7 +28,7 @@ TASK-001 (Partner schema)
 | ID | Task | Status | Depends on | Key gate tests covered |
 |----|------|--------|------------|----------------------|
 | TASK-001 | [Core domain schema (Partners, Aliases, VAs)](TASK-001-partner-schema.md) | `done` | none | leading-zero NO ID round-trip; distinct fields for NO ID/NIK/VA |
-| TASK-002 | [Auth scaffold and RBAC](TASK-002-auth-rbac.md) | `not started` | TASK-001 | unauthorized posting/access denied |
+| TASK-002 | [Auth scaffold and RBAC](TASK-002-auth-rbac.md) | `done` | TASK-001 | unauthorized posting/access denied |
 | TASK-003 | [Agreement schema, transitions, documents](TASK-003-agreement-schema.md) | `not started` | TASK-001 | cyclic addendum rejected; closed_by_rescheduling ≠ paid_off; status changes don't change balances |
 | TASK-004 | [Partner and alias search](TASK-004-partner-search.md) | `not started` | TASK-001, TASK-002 | leading-zero exact match; same-name separate candidates |
 | TASK-005 | [Agreement timeline page](TASK-005-agreement-timeline.md) | `not started` | TASK-003, TASK-004 | unverified balance renders `unverified` not zero; status independence |

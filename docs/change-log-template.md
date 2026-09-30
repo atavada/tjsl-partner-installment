@@ -8,3 +8,4 @@ Every entry must use exactly one label: `implemented`, `stubbed`, or
 | Date       | Task ID  | Label       | Summary                                                                 | Decision ref (if stubbed/blocked) |
 | ---------- | -------- | ----------- | ----------------------------------------------------------------------- | --------------------------------- |
 | 2026-09-30 | TASK-001 | implemented | Partners, PartnerAlias, VirtualAccount schema, models, factories, tests |                                   |
+| 2026-09-30 | TASK-002 | stubbed     | Auth scaffold and RBAC with deny-by-default policies; fine-grained matrix deferred per DEC-009 | DEC-009, DEC-004                 |

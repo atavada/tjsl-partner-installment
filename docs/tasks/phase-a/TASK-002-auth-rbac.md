@@ -34,13 +34,13 @@ Scaffold authentication (Laravel Breeze/Fortify or equivalent) and role-based ac
 
 ## Acceptance criteria
 
-- [ ] "unauthorized posting and unauthorized field access denied" — unauthenticated and unauthorized requests return 403; no implicit admin bypass for financial actions
-- [ ] Five PRD roles exist as enum/config: Operator, Reconciliation reviewer, Process owner, Auditor, System admin
-- [ ] Deny-by-default policy: accessing any protected resource without explicit permission returns 403
-- [ ] Pest test written and passing (auth gates, role assignment, deny-by-default)
-- [ ] No real/PII data used anywhere (code, tests, seed data)
-- [ ] Change log entry added: `stubbed` (fine-grained matrix deferred per DEC-009)
+- [x] "unauthorized posting and unauthorized field access denied" — unauthenticated and unauthorized requests return 403; no implicit admin bypass for financial actions
+- [x] Five PRD roles exist as enum/config: Operator, Reconciliation reviewer, Process owner, Auditor, System admin
+- [x] Deny-by-default policy: accessing any protected resource without explicit permission returns 403
+- [x] Pest test written and passing (auth gates, role assignment, deny-by-default)
+- [x] No real/PII data used anywhere (code, tests, seed data)
+- [x] Change log entry added: `stubbed` (fine-grained matrix deferred per DEC-009)
 
 ## Status
 
-`not started`
+`done`

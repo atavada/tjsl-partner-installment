@@ -1,16 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\Permission;
+use App\Enums\Role;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * @var array<string, bool>
+     */
+    protected array $grantedPermissions = [];
 
     /**
      * The attributes that are mass assignable.
@@ -21,6 +31,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -43,6 +54,79 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => Role::class,
         ];
+    }
+
+    public function hasRole(Role|string ...$roles): bool
+    {
+        foreach ($roles as $role) {
+            $roleValue = $role instanceof Role ? $role->value : $role;
+            if ($this->role->value === $roleValue) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function isSystemAdmin(): bool
+    {
+        return $this->role === Role::SystemAdmin;
+    }
+
+    public function isOperator(): bool
+    {
+        return $this->role === Role::Operator;
+    }
+
+    public function isReconciliationReviewer(): bool
+    {
+        return $this->role === Role::ReconciliationReviewer;
+    }
+
+    public function isProcessOwner(): bool
+    {
+        return $this->role === Role::ProcessOwner;
+    }
+
+    public function isAuditor(): bool
+    {
+        return $this->role === Role::Auditor;
+    }
+
+    public function isFinancial(): bool
+    {
+        return $this->role->isFinancial();
+    }
+
+    public function hasPermission(Permission|string $permission): bool
+    {
+        $permValue = $permission instanceof Permission ? $permission->value : $permission;
+
+        return ! empty($this->grantedPermissions[$permValue]);
+    }
+
+    public function grantPermission(Permission|string $permission): self
+    {
+        $permValue = $permission instanceof Permission ? $permission->value : $permission;
+        $this->grantedPermissions[$permValue] = true;
+
+        return $this;
+    }
+
+    public function revokePermission(Permission|string $permission): self
+    {
+        $permValue = $permission instanceof Permission ? $permission->value : $permission;
+        unset($this->grantedPermissions[$permValue]);
+
+        return $this;
+    }
+
+    public function clearPermissions(): self
+    {
+        $this->grantedPermissions = [];
+
+        return $this;
     }
 }
