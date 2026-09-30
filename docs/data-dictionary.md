@@ -28,25 +28,60 @@ Status legend: `pending` (no migration yet) · `draft` (migration exists,
 not yet reviewed) · `verified` (migration + Pest test for its invariants
 passing).
 
-### Partner — `pending`
+### Partner — `draft`
 Official `partner_no_id` (nullable in staging only; unique once verified),
 verification state, provenance. A display row number is never a NO ID.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
-| | | | §4 Partner | | |
+| id | uuid (PK) | no | §4 | no | HasUuids trait |
+| partner_no_id | varchar(50) | yes | §4 Partner | no | Raw string, leading zeros preserved. Nullable in staging. |
+| partner_no_id_normalized | varchar(50) | yes | §2 | no | Trimmed + uppercased for lookup. UNIQUE (MySQL allows multiple NULLs). |
+| nik | varchar(30) | yes | §4 Partner | yes | Raw NIK string, leading zeros preserved. |
+| nik_normalized | varchar(30) | yes | §2 | yes | Trimmed for lookup. Indexed. |
+| name | varchar(255) | no | §4 Partner | no | Display name. |
+| phone | varchar(30) | yes | §4 Partner | yes | DEC-004: masked by default. |
+| address | text | yes | §4 Partner | yes | DEC-004: masked by default. |
+| business_type | varchar(100) | yes | §4 Partner | no | |
+| region | varchar(100) | yes | §4 Partner | no | |
+| verification_state | varchar(20) | no | §4 Partner | no | `unverified` (default), `pending`, `verified`. String, not enum (TiDB neutral). |
+| provenance | varchar(255) | yes | §4 Partner | no | Data source origin. |
+| version | unsigned int | no | §2 | no | Optimistic concurrency. Default 1. |
+| created_at | timestamp | yes | — | no | |
+| updated_at | timestamp | yes | — | no | |
 
-### PartnerAlias — `pending`
+### PartnerAlias — `draft`
 Raw name, normalized search name, source, reviewer, state.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
+| id | uuid (PK) | no | §4 | no | HasUuids trait |
+| partner_id | uuid (FK → partners) | no | §4 PartnerAlias | no | CASCADE on delete. |
+| name_raw | varchar(255) | no | §4 PartnerAlias | no | Original name as received — never modified. |
+| name_normalized | varchar(255) | no | §2 | no | Lowered + trimmed for search. Indexed. |
+| source | varchar(255) | yes | §4 PartnerAlias | no | Where alias came from (workbook, manual_entry, import). |
+| reviewer_id | bigint unsigned (FK → users) | yes | §4 PartnerAlias | no | Who reviewed. NULL on user delete. |
+| state | varchar(20) | no | §4 PartnerAlias | no | `unreviewed` (default), `confirmed`, `rejected`. |
+| version | unsigned int | no | §2 | no | Optimistic concurrency. Default 1. |
+| created_at | timestamp | yes | — | no | |
+| updated_at | timestamp | yes | — | no | |
 
-### VirtualAccount — `pending`
+### VirtualAccount — `draft`
 Exact string, provider, partner/agreement link, validity window, evidence.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
+| id | uuid (PK) | no | §4 | no | HasUuids trait |
+| partner_id | uuid (FK → partners) | no | §4 VirtualAccount | no | CASCADE on delete. |
+| va_number | varchar(50) | no | §4 VirtualAccount | yes | Raw VA number, leading zeros preserved. DEC-004: masked by default. |
+| va_number_normalized | varchar(50) | no | §2 | yes | Trimmed for lookup. Indexed. No global unique (PRD §4: no timeless uniqueness). |
+| provider | varchar(100) | yes | §4 VirtualAccount | no | Bank/payment provider. Indexed. |
+| valid_from | date | yes | §4 VirtualAccount | no | Validity window start. |
+| valid_until | date | yes | §4 VirtualAccount | no | Validity window end. |
+| evidence | text | yes | §4 VirtualAccount | no | Evidence/notes for VA assignment. |
+| version | unsigned int | no | §2 | no | Optimistic concurrency. Default 1. |
+| created_at | timestamp | yes | — | no | |
+| updated_at | timestamp | yes | — | no | |
 
 ### Agreement — `pending`
 Raw and normalized agreement number, partner, application/effective dates,
