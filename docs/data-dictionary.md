@@ -83,27 +83,91 @@ Exact string, provider, partner/agreement link, validity window, evidence.
 | created_at | timestamp | yes | — | no | |
 | updated_at | timestamp | yes | — | no | |
 
-### Agreement — `pending`
+### Agreement — `draft`
 Raw and normalized agreement number, partner, application/effective dates,
 principal and charge components, lifecycle state, approved source.
-Uniqueness scope: **OPEN** — see `docs/decisions.md`.
+Uniqueness scope: **RESOLVED** — DEC-001: grouping key (business group/batch per year), NOT unique.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
+| id | uuid (PK) | no | §4 | no | HasUuids trait |
+| partner_id | uuid (FK → partners) | no | §4 Agreement | no | CASCADE on delete. |
+| agreement_number | varchar(100) | no | §4 Agreement | no | Raw string, leading zeros preserved. DEC-001: grouping key, NOT unique. |
+| agreement_number_normalized | varchar(100) | no | §2 | no | Uppercased + trimmed. Indexed, no unique index (DEC-001). |
+| batch_year | varchar(10) | yes | DEC-001 | no | Business group / batch per year grouping. |
+| business_group | varchar(100) | yes | DEC-001 | no | Business sector / group classification. |
+| source_row_number | unsigned int | yes | §5 FR-08 | no | Distinct from NO ID and agreement number. |
+| application_date | date | yes | §4 Agreement | no | Date of loan application. |
+| contract_date | date | yes | §4 Agreement | no | Date of contract signing. |
+| effective_date | date | yes | §4 Agreement | no | Start of active loan term. |
+| maturity_date | date | yes | §4 Agreement | no | Scheduled maturity date. |
+| principal_amount | unsigned bigint | no | §2, §4 | no | Integer IDR, non-negative, default 0. |
+| interest_amount | unsigned bigint | no | §2, §4 | no | Integer IDR, non-negative, default 0. |
+| admin_charge_amount | unsigned bigint | no | §2, §4 | no | Integer IDR, non-negative, default 0. |
+| other_charge_amount | unsigned bigint | no | §2, §4 | no | Integer IDR, non-negative, default 0. |
+| total_amount | unsigned bigint | no | §2, §4 | no | Sum of financial components, integer IDR. |
+| lifecycle_status | varchar(30) | no | §4, DEC-002 | no | `draft` (default), `active`, `paid_off`, `closed_by_rescheduling`, `cancelled`, `unknown`. |
+| legacy_lifecycle_status | varchar(100) | yes | DEC-002 | no | Raw label from legacy workbook / UI. |
+| collectibility_status | varchar(30) | no | §4, DEC-007 | no | `unknown` (default), `current` (Lancar), `substandard` (Kurang Lancar), `loss` (Bermasalah). |
+| legacy_collectibility_status | varchar(100) | yes | DEC-007 | no | Raw collectibility code / text from workbook. |
+| signing_status | varchar(30) | no | §4, DEC-003 | no | `not_prepared` (default), `draft`, `awaiting_partner_signature`, `awaiting_company_signature`, `signed`, `unknown`. |
+| signature_summary | varchar(20) | no | DEC-003 | no | `unknown` (default), `unsigned` (Belum TTD), `signed` (Sudah TTD). |
+| legacy_signing_status | varchar(100) | yes | DEC-003 | no | Raw workbook mark ('x', '√', blank). |
+| provenance | varchar(255) | yes | §4 Agreement | no | Origin sheet / source file. |
+| approved_source | varchar(255) | yes | §4 Agreement | no | Process owner approval reference. |
+| approved_by_id | bigint unsigned (FK → users) | yes | §4 Agreement | no | User who approved. |
+| approved_at | timestamp | yes | §4 Agreement | no | Timestamp of approval. |
+| version | unsigned int | no | §2 | no | Optimistic concurrency. Default 1. |
+| created_at | timestamp | yes | — | no | |
+| updated_at | timestamp | yes | — | no | |
 
-### AgreementTransition — `pending`
+### AgreementTransition — `draft`
 Predecessor/successor, type (amendment, rescheduling, closure, reversal),
 effective date, approved amounts, documents. Graph must be acyclic.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
+| id | uuid (PK) | no | §4 | no | HasUuids trait |
+| predecessor_id | uuid (FK → agreements) | no | §4 AgreementTransition | no | Predecessor agreement in chain. CASCADE on delete. |
+| successor_id | uuid (FK → agreements) | yes | §4 AgreementTransition | no | Successor agreement in chain. Nullable for terminal closure. |
+| transition_type | varchar(50) | no | §4 AgreementTransition | no | `amendment`, `rescheduling`, `closure`, `reversal`. |
+| effective_date | date | no | §4 AgreementTransition | no | Effective date of transition. |
+| reason | text | yes | §4 AgreementTransition | no | Business rationale. |
+| approved_principal_amount | unsigned bigint | yes | §4 | no | Integer IDR restructuring amount. |
+| approved_interest_amount | unsigned bigint | yes | §4 | no | Integer IDR restructuring amount. |
+| approved_admin_charge_amount | unsigned bigint | yes | §4 | no | Integer IDR restructuring amount. |
+| approved_by_id | bigint unsigned (FK → users) | yes | §4 | no | Authorizing user. NULL on user delete. |
+| approved_at | timestamp | yes | §4 | no | Timestamp of approval. |
+| version | unsigned int | no | §2 | no | Optimistic concurrency. Default 1. |
+| created_at | timestamp | yes | — | no | |
+| updated_at | timestamp | yes | — | no | |
 
-### InstallmentSchedule — `pending`
+### InstallmentSchedule — `draft`
 Due dates and components per agreement/policy version.
 **Calculation blocked until policy approved** — schema only in Phase A.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
+| id | uuid (PK) | no | §4 | no | HasUuids trait |
+| agreement_id | uuid (FK → agreements) | no | §4 InstallmentSchedule | no | Associated agreement. CASCADE on delete. |
+| installment_number | unsigned int | no | §4 InstallmentSchedule | no | Installment sequence number (1..N). UNIQUE with agreement_id. |
+| due_date | date | no | §4 InstallmentSchedule | no | Scheduled due date. |
+| principal_due | unsigned bigint | no | §2, §4 | no | Integer IDR, default 0. |
+| interest_due | unsigned bigint | no | §2, §4 | no | Integer IDR, default 0. |
+| admin_charge_due | unsigned bigint | no | §2, §4 | no | Integer IDR, default 0. |
+| other_charge_due | unsigned bigint | no | §2, §4 | no | Integer IDR, default 0. |
+| total_due | unsigned bigint | no | §2, §4 | no | Sum of due components, integer IDR, default 0. |
+| principal_paid | unsigned bigint | no | §2, §4 | no | Integer IDR, default 0. |
+| interest_paid | unsigned bigint | no | §2, §4 | no | Integer IDR, default 0. |
+| admin_charge_paid | unsigned bigint | no | §2, §4 | no | Integer IDR, default 0. |
+| other_charge_paid | unsigned bigint | no | §2, §4 | no | Integer IDR, default 0. |
+| total_paid | unsigned bigint | no | §2, §4 | no | Sum of paid components, integer IDR, default 0. |
+| status | varchar(30) | no | §4 | no | `pending`, `paid`, `partially_paid`, `overdue`, `cancelled`. |
+| policy_version | varchar(50) | yes | DEC-008 | no | Calculation policy version reference (blocked on DEC-008). |
+| is_calculated | boolean | no | DEC-008 | no | Schema-only marker. Calculation blocked. Default false. |
+| version | unsigned int | no | §2 | no | Optimistic concurrency. Default 1. |
+| created_at | timestamp | yes | — | no | |
+| updated_at | timestamp | yes | — | no | |
 
 ### BankTransaction — `pending`
 Immutable raw record: reference, datetime + zone, integer IDR amount,
@@ -134,11 +198,28 @@ disposition, status, approval.
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
 
-### AgreementDocument — `pending`
+### AgreementDocument — `draft`
 Versioned private file ref, checksum, MIME, uploader, access log.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
+| id | uuid (PK) | no | §4 | no | HasUuids trait |
+| agreement_id | uuid (FK → agreements) | no | §4 AgreementDocument | no | Associated agreement. CASCADE on delete. |
+| transition_id | uuid (FK → agreement_transitions) | yes | §4 | no | Associated transition (e.g. addendum). Nullable. |
+| file_path | varchar(500) | no | §4 AgreementDocument | no | File path on private storage disk. |
+| file_name | varchar(255) | no | §4 AgreementDocument | no | Original client file name. |
+| mime_type | varchar(100) | no | §4 AgreementDocument | no | MIME type (e.g. `application/pdf`). |
+| file_size_bytes | unsigned bigint | no | §4 AgreementDocument | no | File size in bytes. |
+| checksum_sha256 | varchar(64) | no | §4 AgreementDocument | no | SHA-256 hash of file content. |
+| document_type | varchar(50) | no | §4 AgreementDocument | no | `contract`, `addendum`, `rescheduling_agreement`, `identity`, `other`. |
+| document_version | unsigned int | no | §4 AgreementDocument | no | Document revision version. Default 1. |
+| uploaded_by_id | bigint unsigned (FK → users) | yes | §4 AgreementDocument | no | Uploader user. NULL on user delete. |
+| signing_status | varchar(30) | no | DEC-003 | no | Document workflow signing state. Default `not_prepared`. |
+| signature_summary | varchar(20) | no | DEC-003 | no | `unsigned` (Belum TTD), `signed` (Sudah TTD), `unknown`. Default `unknown`. |
+| notes | text | yes | §4 AgreementDocument | no | Document notes. |
+| version | unsigned int | no | §2 | no | Optimistic concurrency. Default 1. |
+| created_at | timestamp | yes | — | no | |
+| updated_at | timestamp | yes | — | no | |
 
 ### SourceSnapshot / SourceRow — `pending`
 File hash, as-of date, sheet, cell coordinates, raw values, formula text

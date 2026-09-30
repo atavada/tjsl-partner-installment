@@ -9,3 +9,4 @@ Every entry must use exactly one label: `implemented`, `stubbed`, or
 | ---------- | -------- | ----------- | ----------------------------------------------------------------------- | --------------------------------- |
 | 2026-09-30 | TASK-001 | implemented | Partners, PartnerAlias, VirtualAccount schema, models, factories, tests |                                   |
 | 2026-09-30 | TASK-002 | stubbed     | Auth scaffold and RBAC with deny-by-default policies; fine-grained matrix deferred per DEC-009 | DEC-009, DEC-004                 |
+| 2026-09-30 | TASK-003 | stubbed     | Agreement domain schema, acyclic transition graph, private document storage; lifecycle transitions and balance calculation deferred | DEC-002, DEC-003, DEC-008        |

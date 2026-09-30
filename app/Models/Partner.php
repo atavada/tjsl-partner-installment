@@ -49,6 +49,12 @@ class Partner extends Model
         return $this->hasMany(VirtualAccount::class);
     }
 
+    /** @return HasMany<Agreement, $this> */
+    public function agreements(): HasMany
+    {
+        return $this->hasMany(Agreement::class);
+    }
+
     /**
      * Normalize partner_no_id: trim whitespace, uppercase.
      * Leading zeros are preserved — this is string normalization, not numeric conversion.

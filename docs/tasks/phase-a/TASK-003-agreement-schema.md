@@ -40,14 +40,14 @@ Create `agreements`, `agreement_transitions`, `agreement_documents`, and `instal
 
 ## Acceptance criteria
 
-- [ ] "cyclic addendum rejected" — service rejects transition that would create a cycle in predecessor/successor graph
-- [ ] "`closed_by_rescheduling` is not `paid_off`" — model/service prevents treating rescheduling closure as payoff
-- [ ] "status changes (signing/lifecycle) do not change balances" — changing signing or lifecycle state has no side effect on financial amounts
-- [ ] "NO ID, NIK, VA, agreement number and row number stored as distinct fields" — agreement_number is its own string column, distinct from partner identifiers
-- [ ] Pest test written and passing (cycle detection, state independence, document checksum)
-- [ ] No real/PII data used anywhere (code, tests, seed data)
-- [ ] Change log entry added: `stubbed` (lifecycle transitions, balance calc deferred)
+- [x] "cyclic addendum rejected" — service rejects transition that would create a cycle in predecessor/successor graph
+- [x] "`closed_by_rescheduling` is not `paid_off`" — model/service prevents treating rescheduling closure as payoff
+- [x] "status changes (signing/lifecycle) do not change balances" — changing signing or lifecycle state has no side effect on financial amounts
+- [x] "NO ID, NIK, VA, agreement number and row number stored as distinct fields" — agreement_number is its own string column, distinct from partner identifiers
+- [x] Pest test written and passing (cycle detection, state independence, document checksum)
+- [x] No real/PII data used anywhere (code, tests, seed data)
+- [x] Change log entry added: `stubbed` (lifecycle transitions, balance calc deferred)
 
 ## Status
 
-`not started`
+`done`

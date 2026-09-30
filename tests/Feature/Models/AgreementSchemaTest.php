@@ -1,0 +1,274 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Enums\AgreementLifecycleStatus;
+use App\Enums\AgreementSigningStatus;
+use App\Enums\CollectibilityStatus;
+use App\Enums\SignatureSummary;
+use App\Exceptions\NotApprovedException;
+use App\Models\Agreement;
+use App\Models\InstallmentSchedule;
+use App\Models\Partner;
+use App\Models\VirtualAccount;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Str;
+
+describe('Agreement model schema and DEC-001 grouping key', function () {
+    it('creates an agreement with UUID primary key', function () {
+        $agreement = Agreement::factory()->create();
+
+        expect($agreement->id)->toBeString();
+        expect(Str::isUuid($agreement->id))->toBeTrue();
+    });
+
+    it('preserves leading zeros and punctuation in agreement_number', function () {
+        $agreement = Agreement::factory()->create([
+            'agreement_number' => '0012/PUMK/2026',
+            'agreement_number_normalized' => Agreement::normalizeAgreementNumber('0012/PUMK/2026'),
+        ]);
+
+        $retrieved = Agreement::find($agreement->id);
+
+        expect($retrieved->agreement_number)->toBe('0012/PUMK/2026');
+        expect($retrieved->agreement_number_normalized)->toBe('0012/PUMK/2026');
+    });
+
+    it('allows duplicate agreement numbers for the same partner (DEC-001 resolved)', function () {
+        $partner = Partner::factory()->create();
+
+        $first = Agreement::factory()->create([
+            'partner_id' => $partner->id,
+            'agreement_number' => '0045/SP-TJSL/2026',
+            'agreement_number_normalized' => '0045/SP-TJSL/2026',
+        ]);
+
+        $second = Agreement::factory()->create([
+            'partner_id' => $partner->id,
+            'agreement_number' => '0045/SP-TJSL/2026',
+            'agreement_number_normalized' => '0045/SP-TJSL/2026',
+        ]);
+
+        expect($first->id)->not->toBe($second->id);
+        expect($first->agreement_number)->toBe($second->agreement_number);
+        expect(Agreement::where('partner_id', $partner->id)->where('agreement_number_normalized', '0045/SP-TJSL/2026')->count())->toBe(2);
+    });
+
+    it('allows duplicate agreement numbers across different partners (DEC-001 grouping key)', function () {
+        $partnerA = Partner::factory()->create();
+        $partnerB = Partner::factory()->create();
+
+        $agreementA = Agreement::factory()->create([
+            'partner_id' => $partnerA->id,
+            'agreement_number' => 'BATCH-2026-GROUP-1',
+            'agreement_number_normalized' => 'BATCH-2026-GROUP-1',
+        ]);
+
+        $agreementB = Agreement::factory()->create([
+            'partner_id' => $partnerB->id,
+            'agreement_number' => 'BATCH-2026-GROUP-1',
+            'agreement_number_normalized' => 'BATCH-2026-GROUP-1',
+        ]);
+
+        expect($agreementA->partner_id)->not->toBe($agreementB->partner_id);
+        expect($agreementA->agreement_number)->toBe($agreementB->agreement_number);
+    });
+
+    it('stores integer minor units IDR for financial amounts', function () {
+        $agreement = Agreement::factory()->create([
+            'principal_amount' => 25_000_000,
+            'interest_amount' => 1_500_000,
+            'admin_charge_amount' => 100_000,
+            'other_charge_amount' => 0,
+            'total_amount' => 26_600_000,
+        ]);
+
+        $retrieved = Agreement::find($agreement->id);
+
+        expect($retrieved->principal_amount)->toBe(25_000_000);
+        expect($retrieved->interest_amount)->toBe(1_500_000);
+        expect($retrieved->admin_charge_amount)->toBe(100_000);
+        expect($retrieved->total_amount)->toBe(26_600_000);
+    });
+});
+
+describe('Distinct identifier fields (gate test)', function () {
+    it('stores NO ID, NIK, VA, agreement number, and row number as distinct fields', function () {
+        $partner = Partner::factory()->create([
+            'partner_no_id' => '0001234567',
+            'nik' => '3578012345670001',
+        ]);
+
+        $va = VirtualAccount::factory()->create([
+            'partner_id' => $partner->id,
+            'va_number' => '880123456789',
+        ]);
+
+        $agreement = Agreement::factory()->create([
+            'partner_id' => $partner->id,
+            'agreement_number' => '0012/PUMK/2026',
+            'source_row_number' => 42,
+        ]);
+
+        expect($partner->partner_no_id)->toBe('0001234567');
+        expect($partner->nik)->toBe('3578012345670001');
+        expect($va->va_number)->toBe('880123456789');
+        expect($agreement->agreement_number)->toBe('0012/PUMK/2026');
+        expect($agreement->source_row_number)->toBe(42);
+
+        // Every identifier is distinct from the others
+        $identifiers = [
+            $partner->partner_no_id,
+            $partner->nik,
+            $va->va_number,
+            $agreement->agreement_number,
+            (string) $agreement->source_row_number,
+        ];
+
+        expect(array_unique($identifiers))->toHaveCount(5);
+    });
+});
+
+describe('Three independent status dimensions and balance invariance (gate test)', function () {
+    it('ensures lifecycle, collectibility, and signing are independent dimensions', function () {
+        $agreement = Agreement::factory()->create([
+            'lifecycle_status' => AgreementLifecycleStatus::Draft,
+            'collectibility_status' => CollectibilityStatus::Unknown,
+            'signing_status' => AgreementSigningStatus::NotPrepared,
+        ]);
+
+        // Change lifecycle: collectibility and signing untouched
+        $agreement->update(['lifecycle_status' => AgreementLifecycleStatus::Active]);
+        $agreement->refresh();
+        expect($agreement->lifecycle_status)->toBe(AgreementLifecycleStatus::Active);
+        expect($agreement->collectibility_status)->toBe(CollectibilityStatus::Unknown);
+        expect($agreement->signing_status)->toBe(AgreementSigningStatus::NotPrepared);
+
+        // Change signing: lifecycle and collectibility untouched
+        $agreement->update(['signing_status' => AgreementSigningStatus::Signed]);
+        $agreement->refresh();
+        expect($agreement->lifecycle_status)->toBe(AgreementLifecycleStatus::Active);
+        expect($agreement->collectibility_status)->toBe(CollectibilityStatus::Unknown);
+        expect($agreement->signing_status)->toBe(AgreementSigningStatus::Signed);
+
+        // Change collectibility: lifecycle and signing untouched
+        $agreement->update(['collectibility_status' => CollectibilityStatus::Current]);
+        $agreement->refresh();
+        expect($agreement->lifecycle_status)->toBe(AgreementLifecycleStatus::Active);
+        expect($agreement->collectibility_status)->toBe(CollectibilityStatus::Current);
+        expect($agreement->signing_status)->toBe(AgreementSigningStatus::Signed);
+    });
+
+    it('status changes (signing/lifecycle) do not change financial balances', function () {
+        $agreement = Agreement::factory()->create([
+            'principal_amount' => 15_000_000,
+            'interest_amount' => 900_000,
+            'admin_charge_amount' => 100_000,
+            'other_charge_amount' => 0,
+            'total_amount' => 16_000_000,
+            'lifecycle_status' => AgreementLifecycleStatus::Draft,
+            'signing_status' => AgreementSigningStatus::NotPrepared,
+        ]);
+
+        // Transition status multiple times
+        $agreement->update(['lifecycle_status' => AgreementLifecycleStatus::Active]);
+        $agreement->update(['signing_status' => AgreementSigningStatus::Signed]);
+        $agreement->update(['lifecycle_status' => AgreementLifecycleStatus::PaidOff]);
+        $agreement->refresh();
+
+        expect($agreement->principal_amount)->toBe(15_000_000);
+        expect($agreement->interest_amount)->toBe(900_000);
+        expect($agreement->admin_charge_amount)->toBe(100_000);
+        expect($agreement->other_charge_amount)->toBe(0);
+        expect($agreement->total_amount)->toBe(16_000_000);
+    });
+});
+
+describe('closed_by_rescheduling is not paid_off (gate test)', function () {
+    it('distinguishes rescheduling closure from paid_off', function () {
+        $rescheduled = Agreement::factory()->closedByRescheduling()->create();
+        $paidOff = Agreement::factory()->paidOff()->create();
+
+        expect($rescheduled->isClosedByRescheduling())->toBeTrue();
+        expect($rescheduled->isPaidOff())->toBeFalse();
+
+        expect($paidOff->isPaidOff())->toBeTrue();
+        expect($paidOff->isClosedByRescheduling())->toBeFalse();
+
+        // Querying paid off agreements never returns rescheduled agreements
+        $paidOffIds = Agreement::where('lifecycle_status', AgreementLifecycleStatus::PaidOff)->pluck('id');
+        expect($paidOffIds)->toContain($paidOff->id);
+        expect($paidOffIds)->not->toContain($rescheduled->id);
+    });
+});
+
+describe('InstallmentSchedule schema and calculation guard (DEC-008)', function () {
+    it('creates installment schedule with integer IDR components', function () {
+        $agreement = Agreement::factory()->create();
+
+        $schedule = InstallmentSchedule::factory()->create([
+            'agreement_id' => $agreement->id,
+            'installment_number' => 1,
+            'due_date' => '2026-03-01',
+            'principal_due' => 1_000_000,
+            'interest_due' => 60_000,
+            'admin_charge_due' => 10_000,
+            'other_charge_due' => 0,
+            'total_due' => 1_070_000,
+        ]);
+
+        expect($schedule->installment_number)->toBe(1);
+        expect($schedule->principal_due)->toBe(1_000_000);
+        expect($schedule->total_due)->toBe(1_070_000);
+        expect($schedule->status)->toBe('pending');
+        expect($schedule->is_calculated)->toBeFalse();
+    });
+
+    it('enforces unique constraint on agreement_id and installment_number', function () {
+        $agreement = Agreement::factory()->create();
+
+        InstallmentSchedule::factory()->create([
+            'agreement_id' => $agreement->id,
+            'installment_number' => 1,
+        ]);
+
+        InstallmentSchedule::factory()->create([
+            'agreement_id' => $agreement->id,
+            'installment_number' => 1,
+        ]);
+    })->throws(QueryException::class);
+
+    it('blocks balance calculation throwing NotApprovedException per DEC-008', function () {
+        $schedule = InstallmentSchedule::factory()->create();
+
+        expect(fn () => $schedule->calculateOutstanding())
+            ->toThrow(NotApprovedException::class, 'Balance and installment schedule calculation is blocked pending DEC-008 approval.');
+    });
+});
+
+describe('Domain enums accounting terms and UI labels', function () {
+    it('uses English accounting terms with Indonesian UI labels for CollectibilityStatus', function () {
+        expect(CollectibilityStatus::Current->value)->toBe('current');
+        expect(CollectibilityStatus::Current->label())->toBe('Lancar');
+
+        expect(CollectibilityStatus::Substandard->value)->toBe('substandard');
+        expect(CollectibilityStatus::Substandard->label())->toBe('Kurang Lancar');
+
+        expect(CollectibilityStatus::Loss->value)->toBe('loss');
+        expect(CollectibilityStatus::Loss->label())->toBe('Bermasalah');
+
+        expect(CollectibilityStatus::Unknown->value)->toBe('unknown');
+        expect(CollectibilityStatus::Unknown->label())->toBe('Tidak Diketahui');
+    });
+
+    it('uses English terms with Indonesian UI labels for SignatureSummary', function () {
+        expect(SignatureSummary::Unsigned->value)->toBe('unsigned');
+        expect(SignatureSummary::Unsigned->label())->toBe('Belum TTD');
+
+        expect(SignatureSummary::Signed->value)->toBe('signed');
+        expect(SignatureSummary::Signed->label())->toBe('Sudah TTD');
+
+        expect(SignatureSummary::Unknown->value)->toBe('unknown');
+        expect(SignatureSummary::Unknown->label())->toBe('Tidak Diketahui');
+    });
+});
