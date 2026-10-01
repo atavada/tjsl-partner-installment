@@ -1,16 +1,20 @@
 {
 	"permissions": {
 		"allow": [
-			"Bash(php artisan test:*)",
-			"Bash(php artisan test)",
+			"Read",
+			"Grep",
+			"Glob",
+			"Bash(php artisan test *)",
+			"Bash(php artisan route:list *)",
 			"Bash(php artisan make:*)",
-			"Bash(./vendor/bin/pint:*)",
-			"Bash(./vendor/bin/pest:*)",
-			"Bash(npm run lint)",
-			"Bash(npm run types)",
-			"Bash(npm run build)",
-			"Bash(git diff:*)",
-			"Bash(git status)"
+			"Bash(php artisan wayfinder:generate*)",
+			"Bash(vendor/bin/pint *)",
+			"Bash(npm run *)",
+			"Bash(composer show*)",
+			"Bash(find *)",
+			"Bash(git status*)",
+			"Bash(git diff*)",
+			"Bash(git log *)"
 		],
 		"deny": [
 			"Read(./.env)",
