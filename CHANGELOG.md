@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Synthetic database seeders (`UserSeeder`, `PartnerSeeder`, `AgreementSeeder`, `PaymentSeeder`, `AuditEventSeeder`, and updated `DatabaseSeeder`) exercising all Phase A gate test edge cases per PRD §9
+- Seed data for leading-zero NO IDs, same-name different-person partners, same-alias partners, draft agreements (no debt), active agreements, closed_by_rescheduling transitions, payments in all states (draft, submitted, posted, reversed), overpayments/ABT, and append-only audit trails
+- Comprehensive feature tests in `tests/Feature/SyntheticSeederTest.php`
 - Payment capture and staging workflow (`PaymentController`, `StorePaymentRequest`, `PaymentStagingService`, `AllocationService`, `PaymentReversalService`)
 - React pages for payments (`resources/js/pages/Payments/Index.tsx`, `resources/js/pages/Payments/Create.tsx`, `resources/js/pages/Payments/Show.tsx`)
 - Payment TypeScript interfaces (`resources/js/types/payment.ts`)

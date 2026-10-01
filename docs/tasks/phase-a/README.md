@@ -35,7 +35,7 @@ TASK-001 (Partner schema)
 | TASK-006 | [Payment schema (transactions, allocations, ABT)](TASK-006-payment-schema.md) | `not started` | TASK-001, TASK-003 | zero/negative rejected; duplicate rejected; over-allocation rejected |
 | TASK-007 | [Payment staging and allocation proposal](TASK-007-payment-staging.md) | `not started` | TASK-002, TASK-004, TASK-006 | name-only stays unmatched; reversal preserves audit trail; server recomputes totals |
 | TASK-008 | [Audit events system](TASK-008-audit-events.md) | `not started` | TASK-002 | reversal audit trail; unauthorized access logged |
-| TASK-009 | [Synthetic seed data](TASK-009-synthetic-seed.md) | `not started` | TASK-001, TASK-003, TASK-006 | — (exercises all gate tests via data) |
+| TASK-009 | [Synthetic seed data](TASK-009-synthetic-seed.md) | `done` | TASK-001, TASK-003, TASK-006 | — (exercises all gate tests via data) |
 | TASK-010 | [README with assumptions and blocked decisions](TASK-010-readme.md) | `not started` | all above | — (documentation deliverable) |
 
 ## Decisions (from docs/decisions.md)

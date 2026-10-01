@@ -15,3 +15,4 @@ Every entry must use exactly one label: `implemented`, `stubbed`, or
 | 2026-10-01 | TASK-006 | stubbed     | Payment schema: BankTransaction (immutable), PaymentAllocation, ReceivableAdjustment, Overpayment; disposition and balance deferred | DEC-006, DEC-008, DEC-010, DEC-011 |
 | 2026-10-01 | TASK-007 | stubbed     | Payment staging workflow: capture form, controller, service, form request, allocation proposal, reversal; posting and period derivation deferred | DEC-005, DEC-008, DEC-010 |
 | 2026-10-01 | TASK-008 | implemented | Append-only AuditEvent system: migration, model immutability guards, correlation ID middleware, masking service integration, reversal/auth failure tracking, and Pest suite | |
+| 2026-10-01 | TASK-009 | implemented | Synthetic seed data for Phase A: DatabaseSeeder, UserSeeder, PartnerSeeder, AgreementSeeder, PaymentSeeder, AuditEventSeeder with gate test edge cases | |

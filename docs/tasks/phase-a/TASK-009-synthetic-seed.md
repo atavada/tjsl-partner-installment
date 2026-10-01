@@ -36,16 +36,16 @@ Create database seeders generating synthetic (fake, no real PII) data for all Ph
 
 ## Acceptance criteria
 
-- [ ] Seeder runs without error on clean database
-- [ ] Seed data includes partners with leading-zero NO IDs
-- [ ] Seed data includes same-name different-person partners
-- [ ] Seed data includes draft agreements (no debt), active agreements, closed_by_rescheduling
-- [ ] Seed data includes payment in each state (draft, submitted, posted, reversed)
-- [ ] Seed data includes at least one overpayment/ABT record
-- [ ] Pest test written and passing (seeder runs, expected records exist)
-- [ ] No real/PII data used anywhere
-- [ ] Change log entry added: `implemented`
+- [x] Seeder runs without error on clean database
+- [x] Seed data includes partners with leading-zero NO IDs
+- [x] Seed data includes same-name different-person partners
+- [x] Seed data includes draft agreements (no debt), active agreements, closed_by_rescheduling
+- [x] Seed data includes payment in each state (draft, submitted, posted, reversed)
+- [x] Seed data includes at least one overpayment/ABT record
+- [x] Pest test written and passing (seeder runs, expected records exist)
+- [x] No real/PII data used anywhere
+- [x] Change log entry added: `implemented`
 
 ## Status
 
-`not started`
+`implemented`
