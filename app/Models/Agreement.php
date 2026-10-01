@@ -125,6 +125,18 @@ class Agreement extends Model
         return $this->hasMany(InstallmentSchedule::class);
     }
 
+    /** @return HasMany<PaymentAllocation, $this> */
+    public function paymentAllocations(): HasMany
+    {
+        return $this->hasMany(PaymentAllocation::class);
+    }
+
+    /** @return HasMany<ReceivableAdjustment, $this> */
+    public function receivableAdjustments(): HasMany
+    {
+        return $this->hasMany(ReceivableAdjustment::class);
+    }
+
     /** @return BelongsTo<User, $this> */
     public function approvedBy(): BelongsTo
     {

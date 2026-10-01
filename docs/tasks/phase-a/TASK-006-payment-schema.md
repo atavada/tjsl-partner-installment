@@ -43,15 +43,15 @@ Create `bank_transactions`, `payment_allocations`, `receivable_adjustments`, and
 
 ## Acceptance criteria
 
-- [ ] "zero and negative payment rejected" — DB constraint and model validation reject zero/negative amounts on posted payments
-- [ ] "duplicate payment rejected; idempotent ingestion and identical-file re-import" — idempotency key and fingerprint prevent double-posting
-- [ ] "over-allocation rejected by DB-level and service checks" — allocation cannot exceed transaction amount
-- [ ] All money columns integer type, no floats
-- [ ] BankTransaction model is immutable (no update/delete)
-- [ ] Pest test written and passing (constraints, immutability, duplicate rejection)
-- [ ] No real/PII data used anywhere (code, tests, seed data)
-- [ ] Change log entry added: `implemented` (schema) / `stubbed` (disposition, balance)
+- [x] "zero and negative payment rejected" — DB constraint and model validation reject zero/negative amounts on posted payments
+- [x] "duplicate payment rejected; idempotent ingestion and identical-file re-import" — idempotency key and fingerprint prevent double-posting
+- [x] "over-allocation rejected by DB-level and service checks" — allocation cannot exceed transaction amount
+- [x] All money columns integer type, no floats
+- [x] BankTransaction model is immutable (no update/delete)
+- [x] Pest test written and passing (constraints, immutability, duplicate rejection)
+- [x] No real/PII data used anywhere (code, tests, seed data)
+- [x] Change log entry added: `implemented` (schema) / `stubbed` (disposition, balance)
 
 ## Status
 
-`not started`
+`done`

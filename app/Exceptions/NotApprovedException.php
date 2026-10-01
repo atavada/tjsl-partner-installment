@@ -22,4 +22,14 @@ class NotApprovedException extends RuntimeException
     {
         return new self('Balance and installment schedule calculation is blocked pending DEC-008 approval.');
     }
+
+    public static function forOverpaymentDisposition(): self
+    {
+        return new self('ABT / overpayment disposition execution is blocked pending DEC-006 approval.');
+    }
+
+    public static function forReceivableAdjustmentPosting(): self
+    {
+        return new self('Receivable adjustment posting and balance application is blocked pending DEC-008 approval.');
+    }
 }

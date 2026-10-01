@@ -169,34 +169,109 @@ Due dates and components per agreement/policy version.
 | created_at | timestamp | yes | — | no | |
 | updated_at | timestamp | yes | — | no | |
 
-### BankTransaction — `pending`
+### BankTransaction — `verified`
 Immutable raw record: reference, datetime + zone, integer IDR amount,
 payer/VA, source, fingerprint, state. Reference uniqueness is contextual.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
+| id | uuid (PK) | no | §4 | no | HasUuids trait |
+| reference | varchar(255) | yes | §4, DEC-011 | no | Raw bank reference string. |
+| reference_normalized | varchar(255) | yes | §2, DEC-011 | no | Uppercased + trimmed for lookup. |
+| reference_namespace | varchar(100) | yes | DEC-011 | no | Verified bank/provider + account + type. |
+| transaction_datetime | timestamp | no | §4, DEC-010 | no | Receipt timestamp. |
+| timezone | varchar(50) | no | DEC-010 | no | Default `Asia/Jakarta`. |
+| amount | unsigned bigint | no | §2, §4 | no | Integer IDR, non-negative raw deposit. |
+| payer_name | varchar(255) | yes | §4, DEC-004 | yes | DEC-004: masked by default. |
+| payer_va | varchar(50) | yes | §4, DEC-004 | yes | DEC-004: masked by default. |
+| source | varchar(255) | yes | §4, FR-03 | no | Ingestion channel / import file. |
+| source_row_identifier | varchar(255) | yes | §4 | no | Row identifier within source. |
+| fingerprint | varchar(64) | yes | §4, FR-03 | no | SHA-256 hash for duplicate detection. Indexed. |
+| idempotency_key | uuid | no | §2, FR-03 | no | Unique constraint prevents double-ingestion. |
+| state | varchar(30) | no | §4, FR-03 | no | `draft`, `submitted`, `posted`, `reversed`. |
+| receipt_month | varchar(7) | yes | DEC-010 | no | YYYY-MM derived from receipt date. |
+| provenance | varchar(255) | yes | §4 | no | Data origin. |
+| notes | text | yes | §4 | no | Audit notes. |
+| recorded_by_id | bigint unsigned (FK → users) | yes | §4 | no | User who recorded the transaction. |
+| version | unsigned int | no | §2 | no | Optimistic concurrency. Default 1. |
+| created_at | timestamp | yes | — | no | |
+| updated_at | timestamp | yes | — | no | |
 
-### PaymentAllocation — `pending`
+### PaymentAllocation — `verified`
 Transaction to agreement with principal/interest/administration/other
 amounts, effective date, evidence, approver, version. Corrections are
 compensating entries.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
+| id | uuid (PK) | no | §4 | no | HasUuids trait |
+| bank_transaction_id | uuid (FK → bank_transactions) | no | §4 | no | Associated bank transaction. CASCADE on delete. |
+| agreement_id | uuid (FK → agreements) | no | §4 | no | Target agreement. CASCADE on delete. |
+| principal_amount | unsigned bigint | no | §2, §4 | no | Integer IDR component, default 0. |
+| interest_amount | unsigned bigint | no | §2, §4 | no | Integer IDR component, default 0. |
+| admin_charge_amount | unsigned bigint | no | §2, §4 | no | Integer IDR component, default 0. |
+| other_charge_amount | unsigned bigint | no | §2, §4 | no | Integer IDR component, default 0. |
+| total_amount | unsigned bigint | no | §2, §4 | no | Integer IDR sum of components. |
+| effective_date | date | no | §4 | no | Allocation effective date. |
+| period | varchar(7) | yes | DEC-010 | no | YYYY-MM accounting/installment period. |
+| state | varchar(30) | no | §4, FR-03 | no | `draft`, `submitted`, `posted`, `reversed`. |
+| evidence | text | yes | §4, FR-03 | no | Payment evidence document reference / notes. |
+| idempotency_key | uuid | no | §2, FR-03 | no | Unique constraint prevents double-posting. |
+| approved_by_id | bigint unsigned (FK → users) | yes | §4, FR-03 | no | Approving user. NULL on delete. |
+| approved_at | timestamp | yes | §4, FR-03 | no | Timestamp of approval. |
+| approved_source | varchar(255) | yes | §4 Invariant 5 | no | Source row identifier to prevent duplicate posting. |
+| reversal_of_id | uuid (FK → payment_allocations) | yes | §4 Invariant 4 | no | Self-referencing FK for compensating entries. |
+| reason | text | yes | §4 Invariant 4 | no | Required rationale for reversals/corrections. |
+| version | unsigned int | no | §2 | no | Optimistic concurrency. Default 1. |
+| created_at | timestamp | yes | — | no | |
+| updated_at | timestamp | yes | — | no | |
 
-### ReceivableAdjustment — `pending`
+### ReceivableAdjustment — `verified`
 Opening balance, correction, write-off, transfer, reversal with reason,
 approvals, evidence.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
+| id | uuid (PK) | no | §4 | no | HasUuids trait |
+| agreement_id | uuid (FK → agreements) | no | §4 | no | Target agreement. CASCADE on delete. |
+| adjustment_type | varchar(50) | no | §4 | no | `opening_balance`, `correction`, `write_off`, `transfer`, `reversal`. |
+| principal_amount | bigint | no | §2, §4 | no | Signed integer IDR, default 0. |
+| interest_amount | bigint | no | §2, §4 | no | Signed integer IDR, default 0. |
+| admin_charge_amount | bigint | no | §2, §4 | no | Signed integer IDR, default 0. |
+| other_charge_amount | bigint | no | §2, §4 | no | Signed integer IDR, default 0. |
+| total_amount | bigint | no | §2, §4 | no | Signed integer IDR sum of components. |
+| effective_date | date | no | §4 | no | Effective date of adjustment. |
+| reason | text | yes | §4 Invariant 4 | no | Business rationale. |
+| evidence | text | yes | §4 | no | Supporting documentation reference. |
+| idempotency_key | uuid | no | §2 | no | Unique constraint. |
+| state | varchar(30) | no | §4 | no | `draft`, `submitted`, `posted`, `reversed`. |
+| approved_by_id | bigint unsigned (FK → users) | yes | §4 | no | Approving user. NULL on delete. |
+| approved_at | timestamp | yes | §4 | no | Timestamp of approval. |
+| reversal_of_id | uuid (FK → receivable_adjustments) | yes | §4 Invariant 4 | no | Self-referencing FK for compensating entries. |
+| version | unsigned int | no | §2 | no | Optimistic concurrency. Default 1. |
+| created_at | timestamp | yes | — | no | |
+| updated_at | timestamp | yes | — | no | |
 
-### Overpayment (ABT) — `pending`
+### Overpayment (ABT) — `verified`
 Transaction link, nullable partner, unapplied amount, proposed
 disposition, status, approval.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
+| id | uuid (PK) | no | §4 | no | HasUuids trait |
+| bank_transaction_id | uuid (FK → bank_transactions) | no | §4 | no | Associated bank transaction. CASCADE on delete. |
+| partner_id | uuid (FK → partners) | yes | §4 | no | Nullable for unidentified/non-partner deposits. |
+| unapplied_amount | unsigned bigint | no | §2, §4 | no | Integer IDR unapplied portion. |
+| proposed_disposition | varchar(50) | yes | DEC-006 | no | Proposed action (`offset`, `refund`). |
+| disposition_status | varchar(50) | no | DEC-006 | no | `unresolved`, `verified_unapplied`, `disposition_proposed`, `disposition_approved`, `executed`. |
+| evidence | text | yes | §4 | no | Supporting documentation reference. |
+| idempotency_key | uuid | no | §2 | no | Unique constraint. |
+| approved_by_id | bigint unsigned (FK → users) | yes | §4 | no | Approving user. NULL on delete. |
+| approved_at | timestamp | yes | §4 | no | Timestamp of approval. |
+| reason | text | yes | §4 | no | Business rationale for disposition. |
+| version | unsigned int | no | §2 | no | Optimistic concurrency. Default 1. |
+| created_at | timestamp | yes | — | no | |
+| updated_at | timestamp | yes | — | no | |
 
 ### AgreementDocument — `draft`
 Versioned private file ref, checksum, MIME, uploader, access log.
