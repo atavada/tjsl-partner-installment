@@ -27,13 +27,13 @@ Write a project README covering: what this prototype does, tech stack, setup ins
 
 ## Acceptance criteria
 
-- [ ] README includes setup instructions (composer install, npm install, migrate, seed)
-- [ ] README lists all OPEN decisions from `docs/decisions.md` with brief descriptions
-- [ ] README clearly states what is `implemented`, `stubbed`, and `blocked`
-- [ ] README documents Phase B gate requirements (PRD §9)
-- [ ] No real/PII data in examples or screenshots
-- [ ] Change log entry added: `implemented`
+- [x] README includes setup instructions (composer install, npm install, migrate, seed)
+- [x] README lists all OPEN decisions from `docs/decisions.md` with brief descriptions
+- [x] README clearly states what is `implemented`, `stubbed`, and `blocked`
+- [x] README documents Phase B gate requirements (PRD §9)
+- [x] No real/PII data in examples or screenshots
+- [x] Change log entry added: `implemented`
 
 ## Status
 
-`not started`
+`done`

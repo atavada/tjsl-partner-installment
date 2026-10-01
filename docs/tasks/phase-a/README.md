@@ -29,14 +29,14 @@ TASK-001 (Partner schema)
 |----|------|--------|------------|----------------------|
 | TASK-001 | [Core domain schema (Partners, Aliases, VAs)](TASK-001-partner-schema.md) | `done` | none | leading-zero NO ID round-trip; distinct fields for NO ID/NIK/VA |
 | TASK-002 | [Auth scaffold and RBAC](TASK-002-auth-rbac.md) | `done` | TASK-001 | unauthorized posting/access denied |
-| TASK-003 | [Agreement schema, transitions, documents](TASK-003-agreement-schema.md) | `not started` | TASK-001 | cyclic addendum rejected; closed_by_rescheduling ≠ paid_off; status changes don't change balances |
-| TASK-004 | [Partner and alias search](TASK-004-partner-search.md) | `not started` | TASK-001, TASK-002 | leading-zero exact match; same-name separate candidates |
-| TASK-005 | [Agreement timeline page](TASK-005-agreement-timeline.md) | `not started` | TASK-003, TASK-004 | unverified balance renders `unverified` not zero; status independence |
-| TASK-006 | [Payment schema (transactions, allocations, ABT)](TASK-006-payment-schema.md) | `not started` | TASK-001, TASK-003 | zero/negative rejected; duplicate rejected; over-allocation rejected |
-| TASK-007 | [Payment staging and allocation proposal](TASK-007-payment-staging.md) | `not started` | TASK-002, TASK-004, TASK-006 | name-only stays unmatched; reversal preserves audit trail; server recomputes totals |
-| TASK-008 | [Audit events system](TASK-008-audit-events.md) | `not started` | TASK-002 | reversal audit trail; unauthorized access logged |
+| TASK-003 | [Agreement schema, transitions, documents](TASK-003-agreement-schema.md) | `done` | TASK-001 | cyclic addendum rejected; closed_by_rescheduling ≠ paid_off; status changes don't change balances |
+| TASK-004 | [Partner and alias search](TASK-004-partner-search.md) | `done` | TASK-001, TASK-002 | leading-zero exact match; same-name separate candidates |
+| TASK-005 | [Agreement timeline page](TASK-005-agreement-timeline.md) | `done` | TASK-003, TASK-004 | unverified balance renders `unverified` not zero; status independence |
+| TASK-006 | [Payment schema (transactions, allocations, ABT)](TASK-006-payment-schema.md) | `done` | TASK-001, TASK-003 | zero/negative rejected; duplicate rejected; over-allocation rejected |
+| TASK-007 | [Payment staging and allocation proposal](TASK-007-payment-staging.md) | `done` | TASK-002, TASK-004, TASK-006 | name-only stays unmatched; reversal preserves audit trail; server recomputes totals |
+| TASK-008 | [Audit events system](TASK-008-audit-events.md) | `done` | TASK-002 | reversal audit trail; unauthorized access logged |
 | TASK-009 | [Synthetic seed data](TASK-009-synthetic-seed.md) | `done` | TASK-001, TASK-003, TASK-006 | — (exercises all gate tests via data) |
-| TASK-010 | [README with assumptions and blocked decisions](TASK-010-readme.md) | `not started` | all above | — (documentation deliverable) |
+| TASK-010 | [README with assumptions and blocked decisions](TASK-010-readme.md) | `done` | all above | — (documentation deliverable) |
 
 ## Decisions (from docs/decisions.md)
 

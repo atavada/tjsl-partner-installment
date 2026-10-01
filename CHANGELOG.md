@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Project root `README.md` documenting Phase A prototype assumptions, tech stack, financial integrity rules, component status matrix, decisions log, and Phase B gate requirements (TASK-010, labeled `implemented`)
+- Comprehensive documentation of 10 OPEN decisions (`DEC-002` through `DEC-011`) and resolved `DEC-001`
+- Explicit delineation of implemented, stubbed, and blocked behaviors (`NotApprovedException`)
+- Clear local setup, synthetic accounts guide, test execution commands, and MySQL vs TiDB compatibility notice
 - Synthetic database seeders (`UserSeeder`, `PartnerSeeder`, `AgreementSeeder`, `PaymentSeeder`, `AuditEventSeeder`, and updated `DatabaseSeeder`) exercising all Phase A gate test edge cases per PRD §9
 - Seed data for leading-zero NO IDs, same-name different-person partners, same-alias partners, draft agreements (no debt), active agreements, closed_by_rescheduling transitions, payments in all states (draft, submitted, posted, reversed), overpayments/ABT, and append-only audit trails
 - Comprehensive feature tests in `tests/Feature/SyntheticSeederTest.php`
