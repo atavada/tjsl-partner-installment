@@ -183,6 +183,20 @@ class PaymentStagingService
      */
     public function post(PaymentAllocation $allocation, User $actor): never
     {
+        if (app()->bound(AuditService::class)) {
+            app(AuditService::class)->logAuthFailure(
+                action: 'unauthorized_posting_attempt',
+                target: $allocation,
+                delta: [
+                    'allocation_id' => $allocation->id,
+                    'agreement_id' => $allocation->agreement_id,
+                    'total_amount' => $allocation->total_amount,
+                ],
+                reason: 'Posting blocked pending DEC-008 balance calculation approval.',
+                actor: $actor,
+            );
+        }
+
         throw NotApprovedException::forPaymentPosting();
     }
 

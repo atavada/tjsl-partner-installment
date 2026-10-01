@@ -33,16 +33,16 @@ Create append-only `audit_events` table and service. Every create, submission, a
 
 ## Acceptance criteria
 
-- [ ] "reversal preserves original and audit trail" — reversals emit audit events linking to original
-- [ ] "unauthorized posting and unauthorized field access denied" — authorization failures emit audit events
-- [ ] AuditEvent model prevents update and delete (override or exception)
-- [ ] All model creates/updates on auditable models emit events with actor, target, action, delta
-- [ ] Sensitive fields (NIK, VA, phone) masked in delta JSON
-- [ ] Correlation ID groups related events within a request
-- [ ] Pest test written and passing (event emission, immutability, masking)
-- [ ] No real/PII data used anywhere (code, tests, seed data)
-- [ ] Change log entry added: `implemented`
+- [x] "reversal preserves original and audit trail" — reversals emit audit events linking to original
+- [x] "unauthorized posting and unauthorized field access denied" — authorization failures emit audit events
+- [x] AuditEvent model prevents update and delete (override or exception)
+- [x] All model creates/updates on auditable models emit events with actor, target, action, delta
+- [x] Sensitive fields (NIK, VA, phone) masked in delta JSON
+- [x] Correlation ID groups related events within a request
+- [x] Pest test written and passing (event emission, immutability, masking)
+- [x] No real/PII data used anywhere (code, tests, seed data)
+- [x] Change log entry added: `implemented`
 
 ## Status
 
-`not started`
+`completed`

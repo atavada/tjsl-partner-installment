@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Concerns\Auditable;
 use App\Enums\AgreementSigningStatus;
 use App\Enums\SignatureSummary;
 use Database\Factories\AgreementDocumentFactory;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AgreementDocument extends Model
 {
     /** @use HasFactory<AgreementDocumentFactory> */
-    use HasFactory, HasUuids;
+    use Auditable, HasFactory, HasUuids;
 
     protected $fillable = [
         'agreement_id',

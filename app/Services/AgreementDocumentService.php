@@ -68,4 +68,16 @@ class AgreementDocumentService
 
         return hash_equals($document->checksum_sha256, $actualChecksum);
     }
+
+    /**
+     * Retrieve document content with audit logging (PRD §4, FR-06).
+     */
+    public function download(AgreementDocument $document, User $actor): string
+    {
+        if (app()->bound(AuditService::class)) {
+            app(AuditService::class)->logDocumentAccess($document, $actor, 'download');
+        }
+
+        return (string) Storage::disk(self::DISK)->get($document->file_path);
+    }
 }

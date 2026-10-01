@@ -309,12 +309,25 @@ Candidate links, discrepancy type, evidence, decisions, status.
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
 
-### AuditEvent — `pending`
+### AuditEvent — `implemented`
 Actor, time, target, action, delta, reason, correlation ID. Append-only;
 sensitive data masked.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
+| id | uuid (PK) | no | §4 | no | HasUuids trait |
+| correlation_id | uuid | no | §4, §8 | no | Indexed request trace UUID. |
+| actor_id | bigint unsigned (FK → users) | yes | §4 | no | Authenticated actor. NULL on delete/system. |
+| actor_type | varchar(50) | no | §4 | no | `user`, `system`, `guest`. |
+| actor_identifier | varchar(255) | yes | §4 | no | Human-readable handle (email, cli/console, IP). |
+| target_type | varchar(255) | yes | §4 | no | Polymorphic target class name. |
+| target_id | varchar(255) | yes | §4 | no | Polymorphic target identifier. |
+| action | varchar(50) | no | §4, FR-06 | no | Action verb (`create`, `update`, `reversal`, etc.). |
+| delta | json | yes | §4, §8 | no | Masked state diff / payload. Zero raw PII. |
+| reason | text | yes | §4 | no | Business rationale / authorization reason. |
+| ip_address | varchar(45) | yes | §8 | no | Client IP address. |
+| user_agent | text | yes | §8 | no | Client user agent string. |
+| created_at | timestamp | no | §4 | no | Append-only event timestamp (no updated_at). |
 
 ### MetricDefinition — `pending`
 Versioned name, formula/scope, numerator/denominator, date semantics,

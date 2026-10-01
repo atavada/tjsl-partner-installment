@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Concerns\Auditable;
 use App\Enums\PaymentState;
 use Database\Factories\PaymentAllocationFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -16,7 +17,7 @@ use InvalidArgumentException;
 class PaymentAllocation extends Model
 {
     /** @use HasFactory<PaymentAllocationFactory> */
-    use HasFactory, HasUuids;
+    use Auditable, HasFactory, HasUuids;
 
     protected $fillable = [
         'bank_transaction_id',

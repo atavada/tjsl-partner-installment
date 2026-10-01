@@ -147,7 +147,35 @@ class MaskingService
         ]);
 
         if (! $allowed) {
+            if (app()->bound(AuditService::class)) {
+                app(AuditService::class)->logAuthFailure(
+                    action: 'unauthorized_field_access_denied',
+                    target: $target,
+                    delta: [
+                        'field' => $field,
+                        'permission' => $permission->value,
+                        'purpose' => $purpose,
+                    ],
+                    reason: "Unauthorized attempt to reveal sensitive field [{$field}].",
+                    actor: $actor,
+                );
+            }
+
             throw new AuthorizationException("Access denied for sensitive field reveal: [{$field}].");
+        }
+
+        if (app()->bound(AuditService::class)) {
+            app(AuditService::class)->log(
+                action: 'sensitive_field_revealed',
+                target: $target,
+                delta: [
+                    'field' => $field,
+                    'permission' => $permission->value,
+                    'purpose' => $purpose,
+                ],
+                reason: "Sensitive field [{$field}] unmasked for purpose: {$purpose}",
+                actor: $actor,
+            );
         }
 
         return (string) $target->getAttribute($field);

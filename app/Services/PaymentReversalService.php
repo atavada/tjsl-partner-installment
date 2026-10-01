@@ -39,7 +39,7 @@ class PaymentReversalService
             ]);
 
             // Create compensating allocation linked via reversal_of_id
-            return PaymentAllocation::create([
+            $reversal = PaymentAllocation::create([
                 'bank_transaction_id' => $allocation->bank_transaction_id,
                 'agreement_id' => $allocation->agreement_id,
                 'principal_amount' => $allocation->principal_amount,
@@ -58,6 +58,13 @@ class PaymentReversalService
                 'approved_at' => now(),
                 'version' => 1,
             ]);
+
+            // Emit reversal audit event linking to original allocation (PRD §4 invariant 4, FR-06)
+            if (app()->bound(AuditService::class)) {
+                app(AuditService::class)->logReversal($reversal, $allocation, $reason, $actor);
+            }
+
+            return $reversal;
         });
     }
 }

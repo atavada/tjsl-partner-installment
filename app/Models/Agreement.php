@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Concerns\Auditable;
 use App\Enums\AgreementLifecycleStatus;
 use App\Enums\AgreementSigningStatus;
 use App\Enums\CollectibilityStatus;
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Agreement extends Model
 {
     /** @use HasFactory<AgreementFactory> */
-    use HasFactory, HasUuids;
+    use Auditable, HasFactory, HasUuids;
 
     protected $fillable = [
         'partner_id',

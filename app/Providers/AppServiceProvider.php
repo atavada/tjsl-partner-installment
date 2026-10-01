@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\BankTransaction;
 use App\Models\PaymentAllocation;
 use App\Policies\PaymentPolicy;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -16,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(AuditService::class);
     }
 
     /**

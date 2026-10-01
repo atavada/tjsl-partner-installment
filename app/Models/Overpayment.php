@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Concerns\Auditable;
 use App\Enums\PaymentState;
 use App\Exceptions\NotApprovedException;
 use Database\Factories\OverpaymentFactory;
@@ -16,7 +17,7 @@ use InvalidArgumentException;
 class Overpayment extends Model
 {
     /** @use HasFactory<OverpaymentFactory> */
-    use HasFactory, HasUuids;
+    use Auditable, HasFactory, HasUuids;
 
     protected $fillable = [
         'bank_transaction_id',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Concerns\Auditable;
 use App\Enums\PaymentState;
 use App\Exceptions\NotApprovedException;
 use Database\Factories\ReceivableAdjustmentFactory;
@@ -17,7 +18,7 @@ use InvalidArgumentException;
 class ReceivableAdjustment extends Model
 {
     /** @use HasFactory<ReceivableAdjustmentFactory> */
-    use HasFactory, HasUuids;
+    use Auditable, HasFactory, HasUuids;
 
     protected $fillable = [
         'agreement_id',
