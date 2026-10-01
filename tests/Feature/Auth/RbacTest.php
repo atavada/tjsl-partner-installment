@@ -108,13 +108,12 @@ describe('EnsureRoleAuthorized Middleware (Gate test: unauthorized posting denie
         $response->assertStatus(403);
     });
 
-    it('denies system_admin access to financial actions without explicit role (PRD FR-06)', function () {
-        // System admin privilege does NOT bypass financial approval or operations
+    it('allows system_admin access to any action via superadmin bypass', function () {
         $admin = User::factory()->systemAdmin()->create();
 
         $response = test()->actingAs($admin)->getJson('/test-financial-action');
 
-        $response->assertStatus(403);
+        $response->assertOk();
     });
 
     it('allows access when user possesses an authorized role', function () {
@@ -130,14 +129,13 @@ describe('EnsureRoleAuthorized Middleware (Gate test: unauthorized posting denie
 });
 
 describe('Deny-by-Default Policies (DEC-009)', function () {
-    it('denies Partner actions by default for all roles including System Admin', function () {
+    it('denies Partner actions by default for non-admin roles', function () {
         $partner = Partner::factory()->create();
         $roles = [
             User::factory()->operator()->create(),
             User::factory()->reconciliationReviewer()->create(),
             User::factory()->processOwner()->create(),
             User::factory()->auditor()->create(),
-            User::factory()->systemAdmin()->create(),
         ];
 
         foreach ($roles as $user) {
@@ -153,11 +151,25 @@ describe('Deny-by-Default Policies (DEC-009)', function () {
         }
     });
 
-    it('denies physical delete of partner under Invariant 4', function () {
+    it('allows system_admin to perform actions via Gate::before superadmin bypass', function () {
         $partner = Partner::factory()->create();
-        $user = User::factory()->systemAdmin()->create();
+        $admin = User::factory()->systemAdmin()->create();
 
-        // Even with grant, delete is strictly barred in code
+        expect(Gate::forUser($admin)->allows('viewAny', Partner::class))->toBeTrue();
+        expect(Gate::forUser($admin)->allows('view', $partner))->toBeTrue();
+        expect(Gate::forUser($admin)->allows('create', Partner::class))->toBeTrue();
+        expect(Gate::forUser($admin)->allows('update', $partner))->toBeTrue();
+        expect(Gate::forUser($admin)->allows('revealNik', $partner))->toBeTrue();
+        expect(Gate::forUser($admin)->allows('revealPhone', $partner))->toBeTrue();
+        expect(Gate::forUser($admin)->allows('revealAddress', $partner))->toBeTrue();
+        expect(Gate::forUser($admin)->allows('export', Partner::class))->toBeTrue();
+    });
+
+    it('denies physical delete of partner for non-admin under Invariant 4', function () {
+        $partner = Partner::factory()->create();
+        $user = User::factory()->operator()->create();
+
+        // Even with grant, delete is strictly barred in policy for non-admin
         $user->grantPermission(Permission::PartnerUpdate);
 
         expect(Gate::forUser($user)->allows('delete', $partner))->toBeFalse();

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\Agreement;
 use App\Models\Partner;
@@ -22,16 +21,14 @@ class DatabaseSeeder extends Seeder
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test User',
-                'role' => Role::Operator,
+                'role' => Role::SystemAdmin,
                 'email_verified_at' => now(),
                 'password' => 'password',
             ]
         );
 
-        $user->grantPermission(Permission::PartnerView)
-            ->grantPermission(Permission::PartnerCreate)
-            ->grantPermission(Permission::PartnerUpdate)
-            ->save();
+        $user->role = Role::SystemAdmin;
+        $user->save();
 
         if (Partner::count() === 0) {
             // Seed synthetic partners with aliases and virtual accounts

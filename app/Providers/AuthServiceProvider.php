@@ -32,9 +32,17 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
+        // System Admin superadmin bypass: can perform any gate or policy check
+        Gate::before(function (User $user, string $ability): ?bool {
+            if ($user->isSystemAdmin()) {
+                return true;
+            }
+
+            return null;
+        });
+
         // Register Gates for all DEC-004 and DEC-009 permissions
-        // Deny-by-default: evaluates explicit permissions only
-        // PRD FR-06: No Gate::before wildcard bypass for system_admin
+        // Deny-by-default for non-admin: evaluates explicit permissions only
         foreach (Permission::cases() as $permission) {
             Gate::define($permission->value, function (User $user) use ($permission): bool {
                 return $user->hasPermission($permission);

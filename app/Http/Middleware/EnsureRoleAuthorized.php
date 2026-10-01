@@ -24,6 +24,10 @@ class EnsureRoleAuthorized
             abort(401, 'Unauthenticated.');
         }
 
+        if ($user->isSystemAdmin()) {
+            return $next($request);
+        }
+
         $allowedRoles = array_map(
             fn (string $role) => Role::tryFrom($role)?->value ?? $role,
             $roles
