@@ -32,6 +32,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'permissions',
     ];
 
     /**
@@ -55,6 +56,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => Role::class,
+            'permissions' => 'array',
         ];
     }
 
@@ -104,13 +106,23 @@ class User extends Authenticatable
     {
         $permValue = $permission instanceof Permission ? $permission->value : $permission;
 
-        return ! empty($this->grantedPermissions[$permValue]);
+        if (! empty($this->grantedPermissions[$permValue])) {
+            return true;
+        }
+
+        $persisted = $this->permissions ?? [];
+
+        return ! empty($persisted[$permValue]);
     }
 
     public function grantPermission(Permission|string $permission): self
     {
         $permValue = $permission instanceof Permission ? $permission->value : $permission;
         $this->grantedPermissions[$permValue] = true;
+
+        $permissions = $this->permissions ?? [];
+        $permissions[$permValue] = true;
+        $this->permissions = $permissions;
 
         return $this;
     }
@@ -120,12 +132,17 @@ class User extends Authenticatable
         $permValue = $permission instanceof Permission ? $permission->value : $permission;
         unset($this->grantedPermissions[$permValue]);
 
+        $permissions = $this->permissions ?? [];
+        unset($permissions[$permValue]);
+        $this->permissions = $permissions;
+
         return $this;
     }
 
     public function clearPermissions(): self
     {
         $this->grantedPermissions = [];
+        $this->permissions = [];
 
         return $this;
     }

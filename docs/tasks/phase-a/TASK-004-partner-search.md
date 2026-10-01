@@ -34,16 +34,16 @@ Implement server-side partner search by official NO ID (exact match, leading zer
 
 ## Acceptance criteria
 
-- [ ] "leading-zero NO ID round-trip and exact-match lookup on TiDB" — searching "007" returns partner with NO ID "007", not "7"
-- [ ] "same-name different-person returns separate candidates" — two partners with identical alias names appear as distinct results
-- [ ] Search by NO ID, alias name, agreement number, and VA all functional
-- [ ] Server-side pagination with configurable page size
-- [ ] Verification badge shown as text (not color alone) per PRD FR-01
-- [ ] Pest test written and passing
-- [ ] No real/PII data used anywhere (code, tests, seed data)
-- [ ] Server re-validates/recomputes anything sent from the client
-- [ ] Change log entry added: `implemented`
+- [x] "leading-zero NO ID round-trip and exact-match lookup on TiDB" — searching "007" returns partner with NO ID "007", not "7"
+- [x] "same-name different-person returns separate candidates" — two partners with identical alias names appear as distinct results
+- [x] Search by NO ID, alias name, agreement number, and VA all functional
+- [x] Server-side pagination with configurable page size
+- [x] Verification badge shown as text (not color alone) per PRD FR-01
+- [x] Pest test written and passing
+- [x] No real/PII data used anywhere (code, tests, seed data)
+- [x] Server re-validates/recomputes anything sent from the client
+- [x] Change log entry added: `implemented`
 
 ## Status
 
-`not started`
+`done`
