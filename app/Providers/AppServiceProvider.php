@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\BankTransaction;
+use App\Models\PaymentAllocation;
+use App\Policies\PaymentPolicy;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(BankTransaction::class, PaymentPolicy::class);
+        Gate::policy(PaymentAllocation::class, PaymentPolicy::class);
+
+        Route::model('payment', BankTransaction::class);
     }
 }

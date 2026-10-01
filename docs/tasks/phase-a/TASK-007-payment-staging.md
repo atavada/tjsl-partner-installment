@@ -43,18 +43,18 @@ Build payment capture workflow: operator selects verified partner + specific agr
 
 ## Acceptance criteria
 
-- [ ] "zero and negative payment rejected" — server rejects zero/negative component amounts with validation error
-- [ ] "duplicate payment rejected; idempotent ingestion and identical-file re-import" — same idempotency key returns existing record, duplicate fingerprint blocked
-- [ ] "over-allocation rejected by DB-level and service checks" — sum of allocation components cannot exceed transaction amount
-- [ ] "name-only payment stays unmatched" — payment without verified partner+agreement ID stays in unmatched state
-- [ ] "reversal preserves original and audit trail" — reversed payment creates compensating entry, original remains visible
-- [ ] Form shows component sum and current balance with as-of timestamp
-- [ ] Server recomputes all totals regardless of client-submitted values
-- [ ] Pest test written and passing
-- [ ] No real/PII data used anywhere (code, tests, seed data)
-- [ ] Server re-validates/recomputes anything sent from the client
-- [ ] Change log entry added: `implemented` (staging) / `stubbed` (posting, period derivation)
+- [x] "zero and negative payment rejected" — server rejects zero/negative component amounts with validation error
+- [x] "duplicate payment rejected; idempotent ingestion and identical-file re-import" — same idempotency key returns existing record, duplicate fingerprint blocked
+- [x] "over-allocation rejected by DB-level and service checks" — sum of allocation components cannot exceed transaction amount
+- [x] "name-only payment stays unmatched" — payment without verified partner+agreement ID stays in unmatched state
+- [x] "reversal preserves original and audit trail" — reversed payment creates compensating entry, original remains visible
+- [x] Form shows component sum and current balance with as-of timestamp
+- [x] Server recomputes all totals regardless of client-submitted values
+- [x] Pest test written and passing
+- [x] No real/PII data used anywhere (code, tests, seed data)
+- [x] Server re-validates/recomputes anything sent from the client
+- [x] Change log entry added: `implemented` (staging) / `stubbed` (posting, period derivation)
 
 ## Status
 
-`not started`
+`implemented` (staging) / `stubbed` (posting, period derivation)

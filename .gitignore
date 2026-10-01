@@ -27,3 +27,4 @@ yarn-error.log
 # Claude Code local files
 CLAUDE.local.md
 .claude/settings.local.json
+.codegraph/

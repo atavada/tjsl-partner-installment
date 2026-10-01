@@ -13,3 +13,4 @@ Every entry must use exactly one label: `implemented`, `stubbed`, or
 | 2026-09-30 | TASK-004 | implemented | Partner search endpoint across NO ID, name/alias, agreement, VA with server-side pagination, masking, and verification badges |                                   |
 | 2026-10-01 | TASK-005 | stubbed     | Agreement timeline page and detail view with 3 independent status dimensions; balance calculation deferred | DEC-008                           |
 | 2026-10-01 | TASK-006 | stubbed     | Payment schema: BankTransaction (immutable), PaymentAllocation, ReceivableAdjustment, Overpayment; disposition and balance deferred | DEC-006, DEC-008, DEC-010, DEC-011 |
+| 2026-10-01 | TASK-007 | stubbed     | Payment staging workflow: capture form, controller, service, form request, allocation proposal, reversal; posting and period derivation deferred | DEC-005, DEC-008, DEC-010 |

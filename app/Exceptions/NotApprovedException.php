@@ -32,4 +32,19 @@ class NotApprovedException extends RuntimeException
     {
         return new self('Receivable adjustment posting and balance application is blocked pending DEC-008 approval.');
     }
+
+    public static function forPaymentPosting(): self
+    {
+        return new self('Payment posting to receivable ledger is blocked pending DEC-008 approval.');
+    }
+
+    public static function forPeriodOverride(): self
+    {
+        return new self('Payment period override is blocked pending DEC-010 approval.');
+    }
+
+    public static function forSecondReview(): self
+    {
+        return new self('Second review requirement configuration is blocked pending DEC-005 approval.');
+    }
 }

@@ -7,7 +7,7 @@ import { BreadcrumbItem } from '@/types';
 import { AgreementData } from '@/types/agreement';
 import { PartnerData } from '@/types/partner';
 import { Head, Link } from '@inertiajs/react';
-import { AlertCircle, ArrowLeft, Calendar, Coins, FileCheck2, FileText, GitBranch, Info, ShieldAlert } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Calendar, Coins, FileCheck2, FileText, GitBranch, Info, Receipt, ShieldAlert } from 'lucide-react';
 
 interface ShowProps {
     partner: PartnerData;
@@ -64,11 +64,18 @@ export default function Show({ partner, agreement }: ShowProps) {
                         </p>
                     </div>
 
-                    <Button variant="outline" asChild>
-                        <Link href={`/partners/${partner.id}/agreements`} className="inline-flex items-center gap-1.5">
-                            <ArrowLeft className="h-4 w-4" /> Kembali ke Garis Waktu
-                        </Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" asChild>
+                            <Link href={`/partners/${partner.id}/agreements/${agreement.id}/payments`} className="inline-flex items-center gap-1.5">
+                                <Receipt className="h-4 w-4" /> Pembayaran
+                            </Link>
+                        </Button>
+                        <Button variant="outline" asChild>
+                            <Link href={`/partners/${partner.id}/agreements`} className="inline-flex items-center gap-1.5">
+                                <ArrowLeft className="h-4 w-4" /> Kembali ke Garis Waktu
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Draft Banner if draft */}

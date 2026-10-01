@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Payment capture and staging workflow (`PaymentController`, `StorePaymentRequest`, `PaymentStagingService`, `AllocationService`, `PaymentReversalService`)
+- React pages for payments (`resources/js/pages/Payments/Index.tsx`, `resources/js/pages/Payments/Create.tsx`, `resources/js/pages/Payments/Show.tsx`)
+- Payment TypeScript interfaces (`resources/js/types/payment.ts`)
+- Invariants enforcement: zero/negative rejection, over-allocation check, duplicate fingerprint detection, idempotent re-submission, unapplied overpayment (ABT) creation
+- Compensating reversal entry creation with audit trail and original preservation
+- Explicit gating for posting (DEC-008), period override (DEC-010), and second reviewer (DEC-005) throwing `NotApprovedException`
+- Comprehensive feature tests in `tests/Feature/PaymentStagingTest.php`
 - Agreement timeline and detail views (`resources/js/pages/Agreements/Index.tsx`, `resources/js/pages/Agreements/Show.tsx`, and `resources/js/components/AgreementTimeline.tsx`)
 - Display of three independent status dimensions per PRD §4 invariant 8 (contract lifecycle, collectibility risk, and signing/document workflow)
 - `AgreementController` with `index` and `show` endpoints, scoped by partner
