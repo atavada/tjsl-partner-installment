@@ -36,14 +36,14 @@ Build the agreement timeline view showing each agreement's dates, amounts, docum
 
 ## Acceptance criteria
 
-- [ ] "unverified balance renders `unverified`, not zero" — balance display shows explicit `unverified` label, never zero
-- [ ] "status changes (signing/lifecycle) do not change balances" — UI shows three status dimensions independently
-- [ ] Agreement timeline shows dates, amounts, documents, predecessor/successor links
-- [ ] Draft agreements clearly labeled, not showing debt figures
-- [ ] Pest test written and passing (Inertia page renders, balance stub returns unverified)
-- [ ] No real/PII data used anywhere (code, tests, seed data)
-- [ ] Change log entry added: `stubbed` (balance calculation deferred)
+- [x] "unverified balance renders `unverified`, not zero" — balance display shows explicit `unverified` label, never zero
+- [x] "status changes (signing/lifecycle) do not change balances" — UI shows three status dimensions independently
+- [x] Agreement timeline shows dates, amounts, documents, predecessor/successor links
+- [x] Draft agreements clearly labeled, not showing debt figures
+- [x] Pest test written and passing (Inertia page renders, balance stub returns unverified)
+- [x] No real/PII data used anywhere (code, tests, seed data)
+- [x] Change log entry added: `stubbed` (balance calculation deferred)
 
 ## Status
 
-`not started`
+`done`

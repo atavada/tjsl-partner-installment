@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { PartnerData } from '@/types/partner';
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Building2, CreditCard, FileText, Phone, ShieldCheck, User } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Building2, CreditCard, FileText, Phone, ShieldCheck, User } from 'lucide-react';
 
 interface ShowProps {
     partner: PartnerData;
@@ -196,15 +196,25 @@ export default function Show({ partner }: ShowProps) {
                 {/* Agreement Summary Card */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <FileText className="text-primary h-4 w-4" /> Perjanjian Terkait
-                        </CardTitle>
-                        <CardDescription>Mitra ini terdaftar pada {partner.agreements_count} nomor perjanjian.</CardDescription>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <FileText className="text-primary h-4 w-4" /> Perjanjian Terkait ({partner.agreements_count})
+                                </CardTitle>
+                                <CardDescription>Mitra ini terdaftar pada {partner.agreements_count} nomor perjanjian.</CardDescription>
+                            </div>
+                            <Button size="sm" asChild>
+                                <Link href={`/partners/${partner.id}/agreements`} className="inline-flex items-center gap-1.5">
+                                    Lihat Riwayat Perjanjian <ArrowRight className="h-3.5 w-3.5" />
+                                </Link>
+                            </Button>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <p className="text-muted-foreground text-sm">
-                            Detail perjanjian dan riwayat angsuran dikelola pada modul Perjanjian. Nomor perjanjian berfungsi sebagai kunci
-                            pengelompokan batch/kelompok usaha per tahun (DEC-001).
+                            Detail perjanjian, status independen (siklus, kolektibilitas, tanda tangan), dokumen kontrak, dan garis waktu keterkaitan
+                            perjanjian dikelola pada modul Riwayat Perjanjian. Nomor perjanjian berfungsi sebagai kunci pengelompokan batch/kelompok
+                            usaha per tahun (DEC-001).
                         </p>
                     </CardContent>
                 </Card>
