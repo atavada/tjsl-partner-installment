@@ -50,13 +50,15 @@ Replace the existing TJSL Shiny app and staff workbook workflow for partner-loan
 
 ## 3. Roles (scaffold only; real matrix is OPEN)
 
-| Role                    | Job                                                                             |
-| ----------------------- | ------------------------------------------------------------------------------- |
-| Operator                | Search partners, record evidence-backed payments, manage agreement workflow     |
-| Reconciliation reviewer | Resolve identity/agreement matches, approve allocations and exceptions          |
-| Process owner           | Set source precedence, approve opening balances, policy versions, cutover       |
-| Auditor                 | Read-only, reproduce as-of figures, scoped exports                              |
-| System admin            | Users, config, backups. **No implicit authority to approve financial postings** |
+> **DEC-009 (RESOLVED 2026-10-03).** Owner confirmed five business-facing role names. Current release uses viewer, kasir TJSL and system admin only. The two oversight roles are reserved for later phases.
+
+| Confirmed Role (Business) | Internal Name (Code) | Job                                                                             |
+| ------------------------- | -------------------- | ------------------------------------------------------------------------------- |
+| Viewer                    | Auditor              | Read-only, reproduce as-of figures, scoped exports                              |
+| Kasir TJSL                | Operator             | Search partners, record evidence-backed payments, manage agreement workflow     |
+| Kepala Sub Divisi         | ReconciliationReviewer | Resolve identity/agreement matches, approve allocations and exceptions          |
+| Sekper / Kepala Divisi    | ProcessOwner         | Set source precedence, approve opening balances, policy versions, cutover       |
+| System Admin              | SystemAdmin          | Users, config, backups. **No implicit authority to approve financial postings** |
 
 Implement RBAC with **deny-by-default policy checks at API level**. Sensitive fields (NIK, phone, address, VA, documents) are masked by default; who may unmask is OPEN.
 
@@ -75,7 +77,7 @@ Use UUIDs as internal keys. Entity names may change; relationships must not.
 | `BankTransaction`              | Immutable raw record: reference, datetime + zone, integer IDR amount, payer/VA, source, fingerprint, state. Reference uniqueness is contextual.                      |
 | `PaymentAllocation`            | Transaction to agreement with principal/interest/administration/other amounts, effective date, evidence, approver, version. Corrections are compensating entries.    |
 | `ReceivableAdjustment`         | Opening balance, correction, write-off, transfer, reversal with reason, approvals, evidence. Never invent adjustments to force zero variance.                        |
-| `Overpayment` (ABT)            | Transaction link, nullable partner, unapplied amount, proposed disposition, status, approval. Non-partner deposits stay unresolved until matched.                    |
+| `Overpayment` (ABT)            | **Correction (DEC-006, 2026-10-03):** ABT (Angsuran Belum Teridentifikasi) = unidentified deposit, NOT overpayment. Four distinct concepts: (1) raw receipt (immutable), (2) ABT lot (owner unknown, no debt effect), (3) identified-but-unallocated (owner known, not yet applied), (4) true excess (owner known, money exceeds total remaining debt). ABT parks without reducing receivable. No return, no delete. Identify then allocate only. Cashier posts directly, no approval for now. See `docs/formula-specification.md` §7–§8. |
 | `AgreementDocument`            | Versioned private file ref, checksum, MIME, uploader, access log. Upload is not proof of signature.                                                                  |
 | `SourceSnapshot` / `SourceRow` | File hash, as-of date, sheet, cell coordinates, raw values, formula text vs cached value, hidden flag, parser version. Immutable.                                    |
 | `ReconciliationCase`           | Candidate links, discrepancy type, evidence, decisions, status. No implicit financial effect.                                                                        |
@@ -95,6 +97,10 @@ Use UUIDs as internal keys. Entity names may change; relationships must not.
 
 **Balance interface (signature only; no formula until approved):**
 `balance(agreementId, asOf, approvedPolicyVersion)` returns principal, each charge, total, included event IDs and warnings. If a definition or approval is missing, return `unverified` / `not available`, never a plausible zero.
+
+> **DEC-008 (RESOLVED IN PART 2026-10-03).** Confirmed: bunga/admin are manual inputs (no rate engine), allocation order is admin-first then pokok, no late penalty, money is integer Rupiah. Full formulas in `/docs/formula-specification.md`. Formula decision points DP-1 through DP-10 remain open; `BalanceService` returns `unverified` until implemented.
+
+> **DEC-007 (RESOLVED 2026-10-03).** Collectibility: five FINAL labels — Lancar (0–1 months late), Kurang Lancar (2–6), Diragukan (7–9), Bermasalah (>9), LUNAS (balance=0 override). Month-count algorithm (DP-2) OPEN. See `/docs/formula-specification.md` §9.
 
 ## 5. Functional requirements
 
@@ -120,7 +126,7 @@ Every requirement needs: API-level authorization, audit/provenance, loading/empt
 
 - **FR-11 Dashboard and analysis.** Filters: as-of date, agreement cohort/year, sector, region, collectibility, scope. Cards, charts and trends share versioned `MetricDefinition`s and show numerator, denominator, included population and excluded counts. Show an explicit "unclassified" bucket so category sums equal totals. Distinguish partner count from agreement count.
 - **FR-12 Agreement administration.** Separate controls for signing state, document workflow and lifecycle. Versioned PDF upload with checksum, MIME/size validation, malware scan, restricted access. Status changes never adjust balances. New agreements reference the partner registry rather than duplicating identity.
-- **FR-13 ABT / non-partner deposits.** Register raw sender, amount, date/time, branch, note, source. Nullable partner. Unverified deposits never reduce debt. Disposition (offset/refund) needs approval per OPEN policy. Define "latest period" from included rows and test KPI/row consistency.
+- **FR-13 ABT (Angsuran Belum Teridentifikasi).** Register raw sender, amount, date/time, branch, note, source. Nullable partner. Unverified deposits never reduce debt. ABT = unidentified deposit whose owner is not known; it is NOT overpayment (DEC-006). Flow: raw receipt → ABT lot (unknown owner, no debt effect) → identification (actor, time, evidence) → allocation to agreement(s). No return, no refund, no delete. Unmatched ABT stays queued permanently. No approval step for now; cashier posts directly with audit trail and reversal capability (DEC-005). Excess beyond a partner's total remaining debt flows to other partners, not back; target selection rule is OPEN (DP-8). Define "latest period" from included rows and test KPI/row consistency. See `docs/formula-specification.md` §7–§8 for fund flow details.
 - **FR-14 Monitoring and exports.** Monthly monitoring is a separate dated snapshot with its own population, never merged into live KPIs without approved reconciliation. Exports (CSV/XLSX) need permission, scope, provisional labeling, audit; no unrestricted NIK/address extraction. Pivots sort months chronologically and flag missing months.
 
 ## 6. Screen map (legacy to replacement)
@@ -133,7 +139,7 @@ The legacy Shiny UI has ten menus. Save/delete/validation/export behavior was ne
 | Data Mitra, Data Piutang       | `/partners`, `/partners/:id`                | Official NO ID search, aliases, agreement-level balance cards, masked address          |
 | Piutang per Wilayah            | `/dashboard` region view                    | Approved region taxonomy plus raw spelling and unmapped bucket                         |
 | Status Perjanjian              | `/agreements/:id`                           | Pick partner then specific agreement; three status dimensions separate; versioned PDFs |
-| Kelebihan Angsuran (ABT)       | `/abt`                                      | Raw deposits, nullable partner, unapplied balance, approved disposition                |
+| Kelebihan Angsuran (ABT)       | `/abt`                                      | ABT (Angsuran Belum Teridentifikasi): unidentified deposits, four-concept fund model (raw receipt → ABT → identified-unallocated → excess), no return/refund, cashier direct input with audit |
 | Riwayat Angsuran               | `/payments`, `/reconciliation`              | Real transactions vs spreadsheet rows vs zero placeholders; unmatched queue            |
 | Input Pembayaran               | `/payments/new`, `/payments/:id`            | Verified agreement, evidence, review, atomic post; reversal instead of Delete          |
 | Monitoring Bulanan             | `/monitoring`                               | Dated snapshot, masked contacts, separate population                                   |
@@ -190,6 +196,6 @@ _Gate: passing Pest tests for:_
 
 **Phase D: cutover.** Written owner approval, training, backup/rollback rehearsal, parallel-run report, restricted launch. No cutover on a good-looking dashboard alone.
 
-**Repository deliverables:** `/docs/PRD.md`, `/docs/decisions.md` (every OPEN item with owner), `/docs/data-dictionary.md`, `/docs/metric-definitions.md`, migrations, generated API contract, synthetic seeder, Pest suite, change log.
+**Repository deliverables:** `/docs/PRD.md`, `/docs/decisions.md` (every OPEN item with owner), `/docs/formula-specification.md` (balance formulas, allocation rules, collectibility bands, decision points DP-1 through DP-10), `/docs/master-compilation.md` (decision compilation audit trail), `/docs/data-dictionary.md`, `/docs/metric-definitions.md`, migrations, generated API contract, synthetic seeder, Pest suite, change log.
 
 _This PRD specifies a safer replacement. It does not reproduce unknown legacy backend logic and does not certify anyone's debt._

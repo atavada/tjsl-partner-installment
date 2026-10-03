@@ -28,7 +28,7 @@ Status legend: `pending` (no migration yet) · `draft` (migration exists,
 not yet reviewed) · `verified` (migration + Pest test for its invariants
 passing).
 
-### Partner — `draft`
+### Partner — `verified`
 Official `partner_no_id` (nullable in staging only; unique once verified),
 verification state, provenance. A display row number is never a NO ID.
 
@@ -40,8 +40,8 @@ verification state, provenance. A display row number is never a NO ID.
 | nik | varchar(30) | yes | §4 Partner | yes | Raw NIK string, leading zeros preserved. |
 | nik_normalized | varchar(30) | yes | §2 | yes | Trimmed for lookup. Indexed. |
 | name | varchar(255) | no | §4 Partner | no | Display name. |
-| phone | varchar(30) | yes | §4 Partner | yes | DEC-004: masked by default. |
-| address | text | yes | §4 Partner | yes | DEC-004: masked by default. |
+| phone | varchar(30) | yes | §4 Partner | yes | DEC-004 RESOLVED: masked for viewer only; all other roles may see. |
+| address | text | yes | §4 Partner | yes | DEC-004 RESOLVED: masked for viewer only; all other roles may see. |
 | business_type | varchar(100) | yes | §4 Partner | no | |
 | region | varchar(100) | yes | §4 Partner | no | |
 | verification_state | varchar(20) | no | §4 Partner | no | `unverified` (default), `pending`, `verified`. String, not enum (TiDB neutral). |
@@ -50,7 +50,7 @@ verification state, provenance. A display row number is never a NO ID.
 | created_at | timestamp | yes | — | no | |
 | updated_at | timestamp | yes | — | no | |
 
-### PartnerAlias — `draft`
+### PartnerAlias — `verified`
 Raw name, normalized search name, source, reviewer, state.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
@@ -66,14 +66,14 @@ Raw name, normalized search name, source, reviewer, state.
 | created_at | timestamp | yes | — | no | |
 | updated_at | timestamp | yes | — | no | |
 
-### VirtualAccount — `draft`
+### VirtualAccount — `verified`
 Exact string, provider, partner/agreement link, validity window, evidence.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
 | id | uuid (PK) | no | §4 | no | HasUuids trait |
 | partner_id | uuid (FK → partners) | no | §4 VirtualAccount | no | CASCADE on delete. |
-| va_number | varchar(50) | no | §4 VirtualAccount | yes | Raw VA number, leading zeros preserved. DEC-004: masked by default. |
+| va_number | varchar(50) | no | §4 VirtualAccount | yes | Raw VA number, leading zeros preserved. DEC-004 RESOLVED: masked for viewer only. DEC-011 RESOLVED: unique per partner (business rule, not DB constraint). |
 | va_number_normalized | varchar(50) | no | §2 | yes | Trimmed for lookup. Indexed. No global unique (PRD §4: no timeless uniqueness). |
 | provider | varchar(100) | yes | §4 VirtualAccount | no | Bank/payment provider. Indexed. |
 | valid_from | date | yes | §4 VirtualAccount | no | Validity window start. |
@@ -83,7 +83,7 @@ Exact string, provider, partner/agreement link, validity window, evidence.
 | created_at | timestamp | yes | — | no | |
 | updated_at | timestamp | yes | — | no | |
 
-### Agreement — `draft`
+### Agreement — `verified`
 Raw and normalized agreement number, partner, application/effective dates,
 principal and charge components, lifecycle state, approved source.
 Uniqueness scope: **RESOLVED** — DEC-001: grouping key (business group/batch per year), NOT unique.
@@ -106,12 +106,12 @@ Uniqueness scope: **RESOLVED** — DEC-001: grouping key (business group/batch p
 | admin_charge_amount | unsigned bigint | no | §2, §4 | no | Integer IDR, non-negative, default 0. |
 | other_charge_amount | unsigned bigint | no | §2, §4 | no | Integer IDR, non-negative, default 0. |
 | total_amount | unsigned bigint | no | §2, §4 | no | Sum of financial components, integer IDR. |
-| lifecycle_status | varchar(30) | no | §4, DEC-002 | no | `draft` (default), `active`, `paid_off`, `closed_by_rescheduling`, `cancelled`, `unknown`. |
+| lifecycle_status | varchar(30) | no | §4, DEC-002 | no | Internal states: `draft` (default), `active`, `paid_off`, `closed_by_rescheduling`, `cancelled`, `unknown`. DEC-002 RESOLVED: seven business labels (Belum dibuat, Draft, Menunggu TTD Mitra, Menunggu TTD Perusahaan, Sudah Ditandatangani, Aktif, Selesai) are the presentation layer; transition graph OPEN. |
 | legacy_lifecycle_status | varchar(100) | yes | DEC-002 | no | Raw label from legacy workbook / UI. |
-| collectibility_status | varchar(30) | no | §4, DEC-007 | no | `unknown` (default), `current` (Lancar), `substandard` (Kurang Lancar), `loss` (Bermasalah). |
+| collectibility_status | varchar(30) | no | §4, DEC-007 | no | `unknown` (default). RESOLVED five labels: `lancar` (0–1 months late), `kurang_lancar` (2–6), `diragukan` (7–9), `bermasalah` (>9), plus LUNAS override (balance=0). Code enum needs update — see DEC-007. |
 | legacy_collectibility_status | varchar(100) | yes | DEC-007 | no | Raw collectibility code / text from workbook. |
-| signing_status | varchar(30) | no | §4, DEC-003 | no | `not_prepared` (default), `draft`, `awaiting_partner_signature`, `awaiting_company_signature`, `signed`, `unknown`. |
-| signature_summary | varchar(20) | no | DEC-003 | no | `unknown` (default), `unsigned` (Belum TTD), `signed` (Sudah TTD). |
+| signing_status | varchar(30) | no | §4, DEC-003 | no | `not_prepared` (default), `draft`, `awaiting_partner_signature`, `awaiting_company_signature`, `signed`, `unknown`. DEC-003 RESOLVED: upload doc + record TTD. DEC-002 merges signing into 7 business labels. |
+| signature_summary | varchar(20) | no | DEC-003 | no | `unknown` (default), `unsigned` (Belum TTD), `signed` (Sudah TTD). DEC-003 RESOLVED: record partner TTD (sudah/belum). |
 | legacy_signing_status | varchar(100) | yes | DEC-003 | no | Raw workbook mark ('x', '√', blank). |
 | provenance | varchar(255) | yes | §4 Agreement | no | Origin sheet / source file. |
 | approved_source | varchar(255) | yes | §4 Agreement | no | Process owner approval reference. |
@@ -121,7 +121,7 @@ Uniqueness scope: **RESOLVED** — DEC-001: grouping key (business group/batch p
 | created_at | timestamp | yes | — | no | |
 | updated_at | timestamp | yes | — | no | |
 
-### AgreementTransition — `draft`
+### AgreementTransition — `verified`
 Predecessor/successor, type (amendment, rescheduling, closure, reversal),
 effective date, approved amounts, documents. Graph must be acyclic.
 
@@ -142,9 +142,10 @@ effective date, approved amounts, documents. Graph must be acyclic.
 | created_at | timestamp | yes | — | no | |
 | updated_at | timestamp | yes | — | no | |
 
-### InstallmentSchedule — `draft`
+### InstallmentSchedule — `verified`
 Due dates and components per agreement/policy version.
-**Calculation blocked until policy approved** — schema only in Phase A.
+**Formulas approved** (DEC-008 RESOLVED IN PART) — see `docs/formula-specification.md` §3–§4.
+Calculation engine blocked until formula decision points (DP-1..DP-10) resolved.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
@@ -163,8 +164,8 @@ Due dates and components per agreement/policy version.
 | other_charge_paid | unsigned bigint | no | §2, §4 | no | Integer IDR, default 0. |
 | total_paid | unsigned bigint | no | §2, §4 | no | Sum of paid components, integer IDR, default 0. |
 | status | varchar(30) | no | §4 | no | `pending`, `paid`, `partially_paid`, `overdue`, `cancelled`. |
-| policy_version | varchar(50) | yes | DEC-008 | no | Calculation policy version reference (blocked on DEC-008). |
-| is_calculated | boolean | no | DEC-008 | no | Schema-only marker. Calculation blocked. Default false. |
+| policy_version | varchar(50) | yes | DEC-008 | no | Calculation policy version reference. DEC-008 RESOLVED IN PART: formulas approved (formula-specification.md §3–§4), DPs open. |
+| is_calculated | boolean | no | DEC-008 | no | Schema marker. Formulas approved; engine blocked until DPs resolved. Default false. |
 | version | unsigned int | no | §2 | no | Optimistic concurrency. Default 1. |
 | created_at | timestamp | yes | — | no | |
 | updated_at | timestamp | yes | — | no | |
@@ -182,14 +183,14 @@ payer/VA, source, fingerprint, state. Reference uniqueness is contextual.
 | transaction_datetime | timestamp | no | §4, DEC-010 | no | Receipt timestamp. |
 | timezone | varchar(50) | no | DEC-010 | no | Default `Asia/Jakarta`. |
 | amount | unsigned bigint | no | §2, §4 | no | Integer IDR, non-negative raw deposit. |
-| payer_name | varchar(255) | yes | §4, DEC-004 | yes | DEC-004: masked by default. |
-| payer_va | varchar(50) | yes | §4, DEC-004 | yes | DEC-004: masked by default. |
+| payer_name | varchar(255) | yes | §4, DEC-004 | yes | DEC-004 RESOLVED: masked for viewer only; all other roles may see. |
+| payer_va | varchar(50) | yes | §4, DEC-004 | yes | DEC-004 RESOLVED: masked for viewer only; all other roles may see. |
 | source | varchar(255) | yes | §4, FR-03 | no | Ingestion channel / import file. |
 | source_row_identifier | varchar(255) | yes | §4 | no | Row identifier within source. |
 | fingerprint | varchar(64) | yes | §4, FR-03 | no | SHA-256 hash for duplicate detection. Indexed. |
 | idempotency_key | uuid | no | §2, FR-03 | no | Unique constraint prevents double-ingestion. |
 | state | varchar(30) | no | §4, FR-03 | no | `draft`, `submitted`, `posted`, `reversed`. |
-| receipt_month | varchar(7) | yes | DEC-010 | no | YYYY-MM derived from receipt date. |
+| receipt_month | varchar(7) | yes | DEC-010 | no | YYYY-MM derived from receipt date. DEC-010 RESOLVED: period = receipt date month. Receipt month ≠ liability month (formula-specification.md §4). |
 | provenance | varchar(255) | yes | §4 | no | Data origin. |
 | notes | text | yes | §4 | no | Audit notes. |
 | recorded_by_id | bigint unsigned (FK → users) | yes | §4 | no | User who recorded the transaction. |
@@ -213,7 +214,7 @@ compensating entries.
 | other_charge_amount | unsigned bigint | no | §2, §4 | no | Integer IDR component, default 0. |
 | total_amount | unsigned bigint | no | §2, §4 | no | Integer IDR sum of components. |
 | effective_date | date | no | §4 | no | Allocation effective date. |
-| period | varchar(7) | yes | DEC-010 | no | YYYY-MM accounting/installment period. |
+| period | varchar(7) | yes | DEC-010 | no | YYYY-MM accounting/installment period. DEC-010 RESOLVED: derived from receipt date. Override rules OPEN. |
 | state | varchar(30) | no | §4, FR-03 | no | `draft`, `submitted`, `posted`, `reversed`. |
 | evidence | text | yes | §4, FR-03 | no | Payment evidence document reference / notes. |
 | idempotency_key | uuid | no | §2, FR-03 | no | Unique constraint prevents double-posting. |
@@ -253,8 +254,11 @@ approvals, evidence.
 | updated_at | timestamp | yes | — | no | |
 
 ### Overpayment (ABT) — `verified`
-Transaction link, nullable partner, unapplied amount, proposed
-disposition, status, approval.
+Transaction link, nullable partner, unapplied amount, disposition status.
+**DEC-006 RESOLVED IN PART:** ABT ≠ overpayment. Four concepts: raw receipt,
+ABT (unknown owner), identified-unallocated, true excess. Model conflates
+these — needs refactor per `docs/formula-specification.md` §7–§8 and
+`docs/master-compilation.md` §3. No refund, no return, no delete.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
 |-------|------|----------|-----------------|------|-------|
@@ -262,8 +266,8 @@ disposition, status, approval.
 | bank_transaction_id | uuid (FK → bank_transactions) | no | §4 | no | Associated bank transaction. CASCADE on delete. |
 | partner_id | uuid (FK → partners) | yes | §4 | no | Nullable for unidentified/non-partner deposits. |
 | unapplied_amount | unsigned bigint | no | §2, §4 | no | Integer IDR unapplied portion. |
-| proposed_disposition | varchar(50) | yes | DEC-006 | no | Proposed action (`offset`, `refund`). |
-| disposition_status | varchar(50) | no | DEC-006 | no | `unresolved`, `verified_unapplied`, `disposition_proposed`, `disposition_approved`, `executed`. |
+| proposed_disposition | varchar(50) | yes | DEC-006 | no | DEC-006 RESOLVED: no refund/offset. Values need rework per four-concept model (identify → allocate only). |
+| disposition_status | varchar(50) | no | DEC-006 | no | DEC-006 RESOLVED IN PART: current values (`unresolved`, `verified_unapplied`, `disposition_proposed`, `disposition_approved`, `executed`) need alignment with ABT flow (raw → ABT → identified → allocated). |
 | evidence | text | yes | §4 | no | Supporting documentation reference. |
 | idempotency_key | uuid | no | §2 | no | Unique constraint. |
 | approved_by_id | bigint unsigned (FK → users) | yes | §4 | no | Approving user. NULL on delete. |
@@ -273,7 +277,7 @@ disposition, status, approval.
 | created_at | timestamp | yes | — | no | |
 | updated_at | timestamp | yes | — | no | |
 
-### AgreementDocument — `draft`
+### AgreementDocument — `verified`
 Versioned private file ref, checksum, MIME, uploader, access log.
 
 | Field | Type | Nullable | Source (PRD §) | PII? | Notes |
