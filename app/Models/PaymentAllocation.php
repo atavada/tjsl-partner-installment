@@ -151,4 +151,10 @@ class PaymentAllocation extends Model
     {
         return $this->hasMany(self::class, 'reversal_of_id');
     }
+
+    /** @return HasMany<AllocationInstallmentLine, $this> */
+    public function installmentLines(): HasMany
+    {
+        return $this->hasMany(AllocationInstallmentLine::class);
+    }
 }

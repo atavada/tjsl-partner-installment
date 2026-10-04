@@ -9,6 +9,7 @@ use App\Exceptions\NotApprovedException;
 use App\Models\Agreement;
 use App\Models\AuditEvent;
 use App\Models\BankTransaction;
+use App\Models\InstallmentSchedule;
 use App\Models\Partner;
 use App\Models\PaymentAllocation;
 use App\Models\User;
@@ -481,16 +482,33 @@ describe('Cashier Direct Staging and Audit Trail (DEC-005)', function () {
     });
 });
 
-describe('Gated Operations Throws NotApprovedException (DEC-008, DEC-010)', function () {
-    it('blocks posting to ledger per DEC-008', function () {
+describe('Posting per DEC-008 and Gated Operations per DEC-010', function () {
+    it('posts submitted allocation to ledger per DEC-008', function () {
+        InstallmentSchedule::factory()->create([
+            'agreement_id' => $this->agreement->id,
+            'installment_number' => 1,
+            'due_date' => '2026-03-01',
+            'admin_charge_due' => 50_000,
+            'interest_due' => 150_000,
+            'other_charge_due' => 0,
+            'principal_due' => 800_000,
+            'total_due' => 1_000_000,
+        ]);
+
         $allocation = PaymentAllocation::factory()->create([
             'agreement_id' => $this->agreement->id,
+            'admin_charge_amount' => 50_000,
+            'interest_amount' => 150_000,
+            'other_charge_amount' => 0,
+            'principal_amount' => 800_000,
+            'total_amount' => 1_000_000,
+            'state' => PaymentState::Submitted,
         ]);
 
         $stagingService = app(PaymentStagingService::class);
+        $posted = $stagingService->post($allocation, $this->operator);
 
-        expect(fn () => $stagingService->post($allocation, $this->operator))
-            ->toThrow(NotApprovedException::class, 'Payment posting to receivable ledger is blocked pending DEC-008 approval.');
+        expect($posted->state)->toBe(PaymentState::Posted);
     });
 
     it('blocks period override per DEC-010 via form request', function () {

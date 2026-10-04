@@ -73,24 +73,24 @@
 
 | Date | Task ID | Label | Summary | Decision ref |
 |------|---------|-------|---------|-------------|
-| TBD | FIMPL-007 | implemented | Allocation algorithm: admin-first, oldest-due-first per DEC-008 §6 | DEC-008 |
+| 2026-10-04 | FIMPL-007 | implemented | Allocation algorithm: admin-first, oldest-due-first per DEC-008 §6 | DEC-008 |
 
 Previous entries to update: TASK-006 and TASK-007 rows mentioning DEC-008 posting stub.
 
 ## Acceptance criteria
 
-- [ ] `AllocationService` implements §6 algorithm exactly
-- [ ] Admin/bunga first, then principal (DP-1 DEFAULT_ACTIVE)
-- [ ] Oldest due date first across installments (DP-6 DEFAULT_ACTIVE)
-- [ ] Priority order stored as data, not hardcoded
-- [ ] Allocation-to-installment links recorded
-- [ ] `PaymentStagingService::post()` calls allocation service instead of throwing
-- [ ] `PaymentPolicy::post()` returns actual permission check
-- [ ] Excess leftover stored (detailed handling in FIMPL-008)
-- [ ] Docblocks cite `DEC-008`, `DP-1`, `DP-6`, `Allocation Order v1`
-- [ ] Pest tests assert allocation behavior with computed values
-- [ ] Change log updated
+- [x] `AllocationService` implements §6 algorithm exactly
+- [x] Admin/bunga first, then principal (DP-1 DEFAULT_ACTIVE)
+- [x] Oldest due date first across installments (DP-6 DEFAULT_ACTIVE)
+- [x] Priority order stored as data, not hardcoded
+- [x] Allocation-to-installment links recorded
+- [x] `PaymentStagingService::post()` calls allocation service instead of throwing
+- [x] `PaymentPolicy::post()` returns actual permission check
+- [x] Excess leftover stored (detailed handling in FIMPL-008)
+- [x] Docblocks cite `DEC-008`, `DP-1`, `DP-6`, `Allocation Order v1`
+- [x] Pest tests assert allocation behavior with computed values
+- [x] Change log updated
 
 ## Status
 
-`pending`
+`implemented`

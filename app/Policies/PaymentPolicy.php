@@ -34,7 +34,6 @@ class PaymentPolicy
 
     public function post(User $user, ?BankTransaction $transaction = null): bool
     {
-        // Posting is blocked on balance rules (DEC-008)
-        return false;
+        return $user->hasPermission(Permission::PaymentPost);
     }
 }

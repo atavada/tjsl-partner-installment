@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class InstallmentSchedule extends Model
 {
@@ -60,6 +61,12 @@ class InstallmentSchedule extends Model
     public function agreement(): BelongsTo
     {
         return $this->belongsTo(Agreement::class);
+    }
+
+    /** @return HasMany<AllocationInstallmentLine, $this> */
+    public function allocationLines(): HasMany
+    {
+        return $this->hasMany(AllocationInstallmentLine::class);
     }
 
     /**

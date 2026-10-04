@@ -18,6 +18,10 @@ use InvalidArgumentException;
 
 class PaymentStagingService
 {
+    public function __construct(
+        protected AllocationService $allocationService = new AllocationService,
+    ) {}
+
     /**
      * Stage a payment transaction and allocation proposal.
      * Cashier inputs directly without secondary approval per DEC-005.
@@ -189,25 +193,40 @@ class PaymentStagingService
     }
 
     /**
-     * Post allocation to receivable ledger.
-     * Blocked pending DEC-008 balance calculation approval.
+     * Post allocation to receivable ledger per DEC-008 §6.
+     * Cashier posts directly without secondary approval per DEC-005.
+     *
+     * @throws InvalidArgumentException
      */
-    public function post(PaymentAllocation $allocation, User $actor): never
+    public function post(PaymentAllocation $allocation, User $actor): PaymentAllocation
     {
-        if (app()->bound(AuditService::class)) {
-            app(AuditService::class)->logAuthFailure(
-                action: 'unauthorized_posting_attempt',
-                target: $allocation,
-                delta: [
-                    'allocation_id' => $allocation->id,
-                    'agreement_id' => $allocation->agreement_id,
-                    'total_amount' => $allocation->total_amount,
-                ],
-                reason: 'Posting blocked pending DEC-008 balance calculation approval.',
-                actor: $actor,
-            );
+        if ($allocation->state !== PaymentState::Submitted && $allocation->state !== PaymentState::Draft) {
+            throw new InvalidArgumentException("Allocation must be in 'draft' or 'submitted' state to be posted. Current state: '{$allocation->state->value}'.");
         }
 
-        throw NotApprovedException::forPaymentPosting();
+        return DB::transaction(function () use ($allocation, $actor): PaymentAllocation {
+            $agreement = $allocation->agreement;
+
+            if ($agreement === null) {
+                throw new InvalidArgumentException('Allocation must be linked to a valid agreement to post.');
+            }
+
+            // Execute allocation across installment schedules per DEC-008 §6
+            $this->allocationService->allocate(
+                allocation: $allocation,
+                agreement: $agreement,
+                asOf: Carbon::parse($allocation->effective_date ?? now()),
+            );
+
+            // Transition allocation state to Posted
+            $allocation->update([
+                'state' => PaymentState::Posted,
+                'approved_by_id' => $actor->id,
+                'approved_at' => Carbon::now(),
+                'version' => (int) $allocation->version + 1,
+            ]);
+
+            return $allocation->refresh();
+        });
     }
 }
