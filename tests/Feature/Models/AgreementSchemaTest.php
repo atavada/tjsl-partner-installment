@@ -152,10 +152,10 @@ describe('Three independent status dimensions and balance invariance (gate test)
         expect($agreement->signing_status)->toBe(AgreementSigningStatus::Signed);
 
         // Change collectibility: lifecycle and signing untouched
-        $agreement->update(['collectibility_status' => CollectibilityStatus::Current]);
+        $agreement->update(['collectibility_status' => CollectibilityStatus::Lancar]);
         $agreement->refresh();
         expect($agreement->lifecycle_status)->toBe(AgreementLifecycleStatus::Active);
-        expect($agreement->collectibility_status)->toBe(CollectibilityStatus::Current);
+        expect($agreement->collectibility_status)->toBe(CollectibilityStatus::Lancar);
         expect($agreement->signing_status)->toBe(AgreementSigningStatus::Signed);
     });
 
@@ -247,15 +247,21 @@ describe('InstallmentSchedule schema and calculation guard (DEC-008)', function 
 });
 
 describe('Domain enums accounting terms and UI labels', function () {
-    it('uses English accounting terms with Indonesian UI labels for CollectibilityStatus', function () {
-        expect(CollectibilityStatus::Current->value)->toBe('current');
-        expect(CollectibilityStatus::Current->label())->toBe('Lancar');
+    it('uses confirmed Indonesian terms and UI labels for CollectibilityStatus per DEC-007', function () {
+        expect(CollectibilityStatus::Lancar->value)->toBe('lancar');
+        expect(CollectibilityStatus::Lancar->label())->toBe('Lancar');
 
-        expect(CollectibilityStatus::Substandard->value)->toBe('substandard');
-        expect(CollectibilityStatus::Substandard->label())->toBe('Kurang Lancar');
+        expect(CollectibilityStatus::KurangLancar->value)->toBe('kurang_lancar');
+        expect(CollectibilityStatus::KurangLancar->label())->toBe('Kurang Lancar');
 
-        expect(CollectibilityStatus::Loss->value)->toBe('loss');
-        expect(CollectibilityStatus::Loss->label())->toBe('Bermasalah');
+        expect(CollectibilityStatus::Diragukan->value)->toBe('diragukan');
+        expect(CollectibilityStatus::Diragukan->label())->toBe('Diragukan');
+
+        expect(CollectibilityStatus::Bermasalah->value)->toBe('bermasalah');
+        expect(CollectibilityStatus::Bermasalah->label())->toBe('Bermasalah');
+
+        expect(CollectibilityStatus::Lunas->value)->toBe('lunas');
+        expect(CollectibilityStatus::Lunas->label())->toBe('LUNAS');
 
         expect(CollectibilityStatus::Unknown->value)->toBe('unknown');
         expect(CollectibilityStatus::Unknown->label())->toBe('Tidak Diketahui');

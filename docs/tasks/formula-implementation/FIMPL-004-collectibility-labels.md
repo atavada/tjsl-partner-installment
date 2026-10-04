@@ -89,20 +89,20 @@
 
 | Date | Task ID | Label | Summary | Decision ref |
 |------|---------|-------|---------|-------------|
-| TBD | FIMPL-004 | implemented | CollectibilityStatus enum: five FINAL labels + band lookup per DEC-007 | DEC-007 |
+| 2026-10-04 | FIMPL-004 | implemented | CollectibilityStatus enum: five FINAL labels + band lookup per DEC-007 | DEC-007 |
 
 ## Acceptance criteria
 
-- [ ] Enum has six cases: Lancar, KurangLancar, Diragukan, Bermasalah, Lunas, Unknown
-- [ ] `fromLateMonths()` applies FINAL band table as data-driven lookup
-- [ ] `fromBalance()` implements §9.4 label function exactly
-- [ ] Unknown never becomes Lunas (legacy bug guard)
-- [ ] Existing data migrated: current→lancar, substandard→kurang_lancar, loss→bermasalah
-- [ ] Docblock cites `DEC-007`, `Collectibility Label v1`
-- [ ] DP-2 month-count algorithm remains stubbed (input parameter, not computed)
-- [ ] Pest tests assert all band boundaries
-- [ ] Change log updated
+- [x] Enum has six cases: Lancar, KurangLancar, Diragukan, Bermasalah, Lunas, Unknown
+- [x] `fromLateMonths()` applies FINAL band table as data-driven lookup
+- [x] `fromBalance()` implements §9.4 label function exactly
+- [x] Unknown never becomes Lunas (legacy bug guard)
+- [x] Existing data migrated: current→lancar, substandard→kurang_lancar, loss→bermasalah
+- [x] Docblock cites `DEC-007`, `Collectibility Label v1`
+- [x] DP-2 month-count algorithm remains stubbed (input parameter, not computed)
+- [x] Pest tests assert all band boundaries
+- [x] Change log updated
 
 ## Status
 
-`pending`
+`implemented`

@@ -69,7 +69,7 @@ class AgreementFactory extends Factory
         return $this->state(fn () => [
             'lifecycle_status' => AgreementLifecycleStatus::Active,
             'legacy_lifecycle_status' => 'Aktif',
-            'collectibility_status' => CollectibilityStatus::Current,
+            'collectibility_status' => CollectibilityStatus::Lancar,
             'signing_status' => AgreementSigningStatus::Signed,
             'signature_summary' => SignatureSummary::Signed,
         ]);

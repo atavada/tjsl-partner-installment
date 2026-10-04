@@ -149,7 +149,7 @@ describe('Synthetic Database Seeder (TASK-009 / PRD §9 Gate)', function () {
         $active = Agreement::where('agreement_number', '0001/SP-TJSL/2026')->first();
         expect($active)->not->toBeNull()
             ->and($active->lifecycle_status)->toBe(AgreementLifecycleStatus::Active)
-            ->and($active->collectibility_status->value)->toBe('current');
+            ->and($active->collectibility_status->value)->toBe('lancar');
         expect(InstallmentSchedule::where('agreement_id', $active->id)->count())->toBe(12);
         expect(AgreementDocument::where('agreement_id', $active->id)->count())->toBeGreaterThanOrEqual(1);
 

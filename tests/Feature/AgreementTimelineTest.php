@@ -175,7 +175,7 @@ describe('PRD §4 Invariant 8 — Three Independent Status Dimensions (Gate Test
         $agreement = Agreement::factory()->create([
             'partner_id' => $partner->id,
             'lifecycle_status' => AgreementLifecycleStatus::Active,
-            'collectibility_status' => CollectibilityStatus::Current,
+            'collectibility_status' => CollectibilityStatus::Lancar,
             'signing_status' => AgreementSigningStatus::Signed,
             'signature_summary' => SignatureSummary::Signed,
         ]);
@@ -188,7 +188,7 @@ describe('PRD §4 Invariant 8 — Three Independent Status Dimensions (Gate Test
             ->component('Agreements/Show')
             ->where('agreement.status_dimensions.lifecycle.status', 'active')
             ->where('agreement.status_dimensions.lifecycle.label', 'Aktif')
-            ->where('agreement.status_dimensions.collectibility.status', 'current')
+            ->where('agreement.status_dimensions.collectibility.status', 'lancar')
             ->where('agreement.status_dimensions.collectibility.label', 'Lancar')
             ->where('agreement.status_dimensions.signing.status', 'signed')
             ->where('agreement.status_dimensions.signing.label', 'Sudah Ditandatangani')
@@ -219,7 +219,7 @@ describe('PRD §4 Invariant 8 — Three Independent Status Dimensions (Gate Test
         $afterSigningBalance = $balanceService->getBalance($agreement);
 
         // Update collectibility status
-        $agreement->update(['collectibility_status' => CollectibilityStatus::Substandard]);
+        $agreement->update(['collectibility_status' => CollectibilityStatus::KurangLancar]);
         $agreement->refresh();
         $afterCollectibilityBalance = $balanceService->getBalance($agreement);
 

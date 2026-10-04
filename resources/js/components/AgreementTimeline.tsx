@@ -39,12 +39,19 @@ export function getLifecycleBadgeVariant(status: string | null): 'default' | 'se
 
 export function getCollectibilityBadgeVariant(status: string | null): 'default' | 'secondary' | 'destructive' | 'outline' {
     switch (status) {
+        case 'lancar':
         case 'current':
             return 'outline';
+        case 'kurang_lancar':
         case 'substandard':
+        case 'diragukan':
             return 'secondary';
+        case 'bermasalah':
         case 'loss':
             return 'destructive';
+        case 'lunas':
+            return 'default';
+        case 'unknown':
         default:
             return 'outline';
     }
