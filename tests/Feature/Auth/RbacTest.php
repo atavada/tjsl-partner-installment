@@ -40,11 +40,24 @@ describe('PRD Roles Enum', function () {
     });
 
     it('provides correct labels for each role', function () {
-        expect(Role::Operator->label())->toBe('Operator');
-        expect(Role::ReconciliationReviewer->label())->toBe('Reconciliation Reviewer');
-        expect(Role::ProcessOwner->label())->toBe('Process Owner');
-        expect(Role::Auditor->label())->toBe('Auditor');
+        expect(Role::Operator->label())->toBe('Kasir TJSL');
+        expect(Role::ReconciliationReviewer->label())->toBe('Kepala Sub Divisi');
+        expect(Role::ProcessOwner->label())->toBe('Sekper / Kepala Divisi');
+        expect(Role::Auditor->label())->toBe('Viewer');
         expect(Role::SystemAdmin->label())->toBe('System Admin');
+    });
+
+    it('provides businessName as alias for label per DEC-009', function () {
+        foreach (Role::cases() as $role) {
+            expect($role->businessName())->toBe($role->label());
+        }
+    });
+
+    it('asserts confirmed business names differ from legacy English stubs', function () {
+        expect(Role::Auditor->label())->toBe('Viewer')
+            ->and(Role::Auditor->label())->not->toBe('Auditor')
+            ->and(Role::Operator->label())->toBe('Kasir TJSL')
+            ->and(Role::Operator->label())->not->toBe('Operator');
     });
 
     it('correctly identifies financial vs non-financial roles', function () {
@@ -64,6 +77,7 @@ describe('User Role Assignment and Persistence', function () {
 
         expect($retrieved->role)->toBe(Role::Auditor);
         expect($retrieved->role->value)->toBe('auditor');
+        expect($retrieved->role_label)->toBe('Viewer');
         expect($retrieved->isAuditor())->toBeTrue();
         expect($retrieved->isSystemAdmin())->toBeFalse();
     });
@@ -72,6 +86,7 @@ describe('User Role Assignment and Persistence', function () {
         $user = User::factory()->create();
 
         expect($user->role)->toBe(Role::Operator);
+        expect($user->role_label)->toBe('Kasir TJSL');
         expect($user->isOperator())->toBeTrue();
     });
 

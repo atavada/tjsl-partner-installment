@@ -35,6 +35,7 @@ All notable changes to this project will be documented in this file.
 - Feature tests in `tests/Feature/PartnerSearchTest.php`
 
 ### Changed
+- Updated `Role` enum display labels (`Role::label()`) to confirmed Indonesian business names (`Kasir TJSL`, `Kepala Sub Divisi`, `Sekper / Kepala Divisi`, `Viewer`, `System Admin`) and added `businessName()` alias per DEC-009; added `User::$role_label` accessor and frontend TypeScript `ROLE_LABELS` mapping (FIMPL-002)
 - Removed second-review enforcement (`PaymentStagingService::enforceSecondReview`) per DEC-005 ruling; cashier stages and submits payments directly without secondary approval while retaining full audit logging and reversible compensating entries (FIMPL-001)
 
 ### Fixed

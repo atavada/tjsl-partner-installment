@@ -85,7 +85,7 @@ During Phase A development, the following foundational assumptions were made bas
   - Seeders covering all 14 PRD §9 gate edge case scenarios
 
 ### 2. Stubbed Components
-- **Fine-Grained Permission Matrix ([DEC-009](docs/decisions.md)):** Core roles exist, but granular capability grants are stubbed as empty arrays until staff capability mapping is approved.
+- **Fine-Grained Permission Matrix ([DEC-009](docs/decisions.md)):** Core roles exist with confirmed business labels per DEC-009 (resolved 2026-10-03), but granular capability grants are stubbed as empty arrays until staff capability mapping is approved.
 - **Ledger Balance Calculation ([DEC-008](docs/decisions.md)):** `BalanceService::getBalance()` returns an explicit `unverified` status and `'unverified'` component strings. It never returns a simulated or zero balance.
 - **Installment Schedule Formula Calculation ([DEC-008](docs/decisions.md)):** Installment schedule records exist in schema with `is_calculated = false`. Automated schedule generation is stubbed pending approved interest/admin accrual rules.
 - **Sensitive Field Unmasking Grants ([DEC-004](docs/decisions.md)):** Unmasking permissions (`nik.reveal`, `phone.reveal`, `va.reveal`) are stubbed as permanently denied in Phase A.
@@ -108,9 +108,10 @@ Detailed documentation of all architectural and domain decisions is maintained i
 ### Resolved Decisions
 - **`DEC-001` (Agreement-Number Uniqueness Scope):** `RESOLVED` (2026-09-30). Agreement number is a non-unique batch/year grouping key. Unique partner identification relies on `partner_no_id` (`NO ID`) and `va_number` (`NO VA`).
 - **`DEC-005` (Second Review of Unmatched Deposits):** `RESOLVED` (2026-10-03). Process owner confirmed no approval system for now. TJSL cashier inputs directly with full audit trail and reversal capability.
+- **`DEC-009` (RBAC Roles and Permissions):** `RESOLVED` (2026-10-03). Process owner confirmed five business-facing role names (Viewer, Kasir TJSL, Kepala Sub Divisi, Sekper / Kepala Divisi, System Admin). Current release scope activates Viewer, Kasir TJSL, and System Admin.
 
 ### Open Decisions (Pending Process Owner Approval)
-The following 9 decisions remain `PROPOSED` (OPEN) and block Phase B execution until approved by their designated owners:
+The following 8 decisions remain `PROPOSED` (OPEN) and block Phase B execution until approved by their designated owners:
 
 | Decision ID | Title | Summary / Proposed Default | Owner |
 |---|---|---|---|
@@ -120,7 +121,6 @@ The following 9 decisions remain `PROPOSED` (OPEN) and block Phase B execution u
 | **[DEC-006](docs/decisions.md#dec-006-abt--overpayment-disposition-policy-and-cross-agreement-offset-rules)** | ABT / Overpayment Disposition Policy | Rules governing excess payment handling: cross-agreement offset precedence, partner refund approval criteria, and unidentified fund holding limits. | Process Owner |
 | **[DEC-007](docs/decisions.md#dec-007-collectibility-classification-levels-arrears-thresholds-and-legacy-label-mapping)** | Collectibility Classification Levels | Formalization of 4 risk ratings (`lancar`, `kurang_lancar`, `bermasalah`, `unknown`), days-past-due thresholds, and mapping from legacy labels (`Lunas`, `Lancar`, `Kurang Lancar`, `Bermasalah`). | Process Owner |
 | **[DEC-008](docs/decisions.md#dec-008-balance-calculation-rules-ledger-identity-formulas-interestadmin-distinctions-and-rounding-policy)** | Balance Calculation Rules & Formulas | Ledger identity formula, interest vs admin fee calculation rules (flat vs effective), rounding rules, and allocation precedence order. | Process Owner |
-| **[DEC-009](docs/decisions.md#dec-009-granular-rbac-permission-matrix-for-production-staff)** | Granular RBAC Permission Matrix | Definitive capability mapping across operational staff roles, enforcing strict separation of duties between staging and posting. | Process Owner / System Admin |
 | **[DEC-010](docs/decisions.md#dec-010-payment-period-derivation-rules-timezone-cutoff-and-accounting-override-criteria)** | Payment Period Derivation Rules | Rule for deriving accounting period from transaction timestamp (`Asia/Jakarta`), end-of-month cutoff rules, and override governance. | Process Owner |
 | **[DEC-011](docs/decisions.md#dec-011-bank-reference-uniqueness-scope-provider-namespaces-and-statement-deduplication)** | Bank-Reference Uniqueness Scope | Uniqueness constraints for bank transaction reference numbers across institutions and statement deduplication logic. | Process Owner |
 

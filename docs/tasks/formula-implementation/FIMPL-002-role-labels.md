@@ -52,19 +52,19 @@
 
 | Date | Task ID | Label | Summary | Decision ref |
 |------|---------|-------|---------|-------------|
-| TBD | FIMPL-002 | implemented | Role enum labels updated to confirmed business names per DEC-009 | DEC-009 |
+| 2026-10-04 | FIMPL-002 | implemented | Role enum labels updated to confirmed business names per DEC-009 | DEC-009 |
 
 Previous entry to update: TASK-002 row mentioning DEC-009 stub.
 
 ## Acceptance criteria
 
-- [ ] `Role::label()` returns confirmed Indonesian business names
-- [ ] Docblock on `Role` enum cites `DEC-009`
-- [ ] Frontend role display updated if applicable
-- [ ] Existing RBAC tests pass
-- [ ] New Pest test asserts each role's confirmed label
-- [ ] Change log updated
+- [x] `Role::label()` returns confirmed Indonesian business names
+- [x] Docblock on `Role` enum cites `DEC-009`
+- [x] Frontend role display updated if applicable
+- [x] Existing RBAC tests pass
+- [x] New Pest test asserts each role's confirmed label
+- [x] Change log updated
 
 ## Status
 
-`pending`
+`completed`
