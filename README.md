@@ -43,7 +43,7 @@ During Phase A development, the following foundational assumptions were made bas
 - **Unverified Balances:** Because interest, administration fee, and penalty calculation rules are pending formal business confirmation, outstanding balances cannot be computed or assumed. Any balance inquiry returns an explicit `unverified` status rather than a false or estimated zero.
 - **Draft Agreements:** Draft agreements do not establish legally binding debt. They are excluded from active receivables calculations and partner liability summaries until activated.
 - **Single Bank Account Context:** Phase A bank transaction capture models incoming statement rows with reference identifiers, timestamps, and amounts, leaving multi-institution clearinghouse rules to Phase B.
-- **Strict Maker-Checker Requirement:** Any financial posting from staged payments requires secondary review; self-approval and single-operator posting are blocked by design.
+- **Cashier Direct Posting Authority (DEC-005):** Process owner confirmed no maker-checker approval system for now (resolved 2026-10-03); TJSL cashier inputs directly with full audit trail and reversal capability.
 
 ---
 
@@ -96,7 +96,6 @@ The following actions intentionally throw `App\Exceptions\NotApprovedException` 
 - **Agreement Signing State Transitions ([DEC-003](docs/decisions.md)):** `AgreementTransitionService::transitionSigning()` throws `NotApprovedException::forSigningTransition()`.
 - **Payment & Allocation Ledger Posting ([DEC-008](docs/decisions.md)):** `PaymentStagingService::post()` throws `NotApprovedException::forPaymentPosting()`.
 - **Receivable Adjustment Posting ([DEC-008](docs/decisions.md)):** Manual balance adjustment posting throws `NotApprovedException::forReceivableAdjustmentPosting()`.
-- **Maker-Checker Dual Review Enforcement ([DEC-005](docs/decisions.md)):** Second-review bypass throws `NotApprovedException::forSecondReview()`.
 - **ABT / Overpayment Disposition Execution ([DEC-006](docs/decisions.md)):** `Overpayment::executeDisposition()` throws `NotApprovedException::forOverpaymentDisposition()`.
 - **Payment Period Overrides ([DEC-010](docs/decisions.md)):** Overriding the derived transaction accounting period throws `NotApprovedException::forPeriodOverride()`.
 
@@ -108,16 +107,16 @@ Detailed documentation of all architectural and domain decisions is maintained i
 
 ### Resolved Decisions
 - **`DEC-001` (Agreement-Number Uniqueness Scope):** `RESOLVED` (2026-09-30). Agreement number is a non-unique batch/year grouping key. Unique partner identification relies on `partner_no_id` (`NO ID`) and `va_number` (`NO VA`).
+- **`DEC-005` (Second Review of Unmatched Deposits):** `RESOLVED` (2026-10-03). Process owner confirmed no approval system for now. TJSL cashier inputs directly with full audit trail and reversal capability.
 
 ### Open Decisions (Pending Process Owner Approval)
-The following 10 decisions remain `PROPOSED` (OPEN) and block Phase B execution until approved by their designated owners:
+The following 9 decisions remain `PROPOSED` (OPEN) and block Phase B execution until approved by their designated owners:
 
 | Decision ID | Title | Summary / Proposed Default | Owner |
 |---|---|---|---|
 | **[DEC-002](docs/decisions.md#dec-002-agreement-lifecycle-states-and-transition-guard-rules)** | Agreement Lifecycle States & Transitions | Formal definition of contract lifecycle states (`draft`, `active`, `paid_off`, `closed_by_rescheduling`, `cancelled`, `unknown`) and operational transition guards. | Process Owner |
 | **[DEC-003](docs/decisions.md#dec-003-signing-and-document-workflow-states-signatory-ordering-and-mark-mapping)** | Signing & Document Workflow States | Definition of document states (`not_prepared`, `draft`, `awaiting_partner_signature`, `awaiting_company_signature`, `signed`, `unknown`), signatory sequence, and legacy mark mappings. | Process Owner |
 | **[DEC-004](docs/decisions.md#dec-004-sensitive-field-unmasking-policy-role-permissions-and-access-logs)** | Sensitive-Field Unmasking Policy | Role-based policy for revealing masked PII (`nik`, `phone`, `address`, `va_number`), justification logs, and export controls. | Process Owner / System Admin |
-| **[DEC-005](docs/decisions.md#dec-005-second-review-of-unmatched-deposits-threshold-rules-and-maker-checker-enforcement)** | Second Review of Unmatched Deposits | Mandatory maker-checker review thresholds for unapplied deposits before posting to general ledger. | Process Owner |
 | **[DEC-006](docs/decisions.md#dec-006-abt--overpayment-disposition-policy-and-cross-agreement-offset-rules)** | ABT / Overpayment Disposition Policy | Rules governing excess payment handling: cross-agreement offset precedence, partner refund approval criteria, and unidentified fund holding limits. | Process Owner |
 | **[DEC-007](docs/decisions.md#dec-007-collectibility-classification-levels-arrears-thresholds-and-legacy-label-mapping)** | Collectibility Classification Levels | Formalization of 4 risk ratings (`lancar`, `kurang_lancar`, `bermasalah`, `unknown`), days-past-due thresholds, and mapping from legacy labels (`Lunas`, `Lancar`, `Kurang Lancar`, `Bermasalah`). | Process Owner |
 | **[DEC-008](docs/decisions.md#dec-008-balance-calculation-rules-ledger-identity-formulas-interestadmin-distinctions-and-rounding-policy)** | Balance Calculation Rules & Formulas | Ledger identity formula, interest vs admin fee calculation rules (flat vs effective), rounding rules, and allocation precedence order. | Process Owner |

@@ -7,6 +7,7 @@ use App\Enums\Permission;
 use App\Exceptions\DuplicatePaymentException;
 use App\Exceptions\NotApprovedException;
 use App\Models\Agreement;
+use App\Models\AuditEvent;
 use App\Models\BankTransaction;
 use App\Models\Partner;
 use App\Models\PaymentAllocation;
@@ -384,7 +385,103 @@ describe('Reversal preserves original and audit trail (PRD §4 invariant 4)', fu
     });
 });
 
-describe('Gated Operations Throws NotApprovedException (DEC-005, DEC-008, DEC-010)', function () {
+describe('Cashier Direct Staging and Audit Trail (DEC-005)', function () {
+    it('stages and submits payment with single cashier user without requiring second reviewer', function () {
+        $this->actingAs($this->operator);
+        $stagingService = app(PaymentStagingService::class);
+
+        $payload = [
+            'idempotency_key' => Str::uuid()->toString(),
+            'partner_id' => $this->verifiedPartner->id,
+            'agreement_id' => $this->agreement->id,
+            'receipt_date' => '2026-03-15',
+            'principal_amount' => 500_000,
+            'interest_amount' => 50_000,
+            'admin_charge_amount' => 10_000,
+            'other_charge_amount' => 0,
+        ];
+
+        // Cashier directly stages payment without second reviewer
+        $transaction = $stagingService->stage($payload, $this->operator);
+        expect($transaction)->toBeInstanceOf(BankTransaction::class)
+            ->and($transaction->state)->toBe(PaymentState::Draft)
+            ->and($transaction->recorded_by_id)->toBe($this->operator->id)
+            ->and($transaction->amount)->toBe(560_000);
+
+        $allocation = $transaction->allocations->first();
+        expect($allocation)->toBeInstanceOf(PaymentAllocation::class)
+            ->and($allocation->state)->toBe(PaymentState::Draft)
+            ->and($allocation->total_amount)->toBe(560_000);
+
+        // Cashier directly submits payment without second reviewer
+        $submitted = $stagingService->submit($allocation, $this->operator);
+        expect($submitted->state)->toBe(PaymentState::Submitted);
+
+        // Audit trail: verify audit events created for cashier actions
+        $txnCreateEvent = AuditEvent::where('target_type', BankTransaction::class)
+            ->where('target_id', $transaction->id)
+            ->where('action', 'create')
+            ->first();
+        expect($txnCreateEvent)->not->toBeNull()
+            ->and($txnCreateEvent->actor_id)->toBe($this->operator->id);
+
+        $allocCreateEvent = AuditEvent::where('target_type', PaymentAllocation::class)
+            ->where('target_id', $allocation->id)
+            ->where('action', 'create')
+            ->first();
+        expect($allocCreateEvent)->not->toBeNull()
+            ->and($allocCreateEvent->actor_id)->toBe($this->operator->id);
+
+        $allocSubmitEvent = AuditEvent::where('target_type', PaymentAllocation::class)
+            ->where('target_id', $allocation->id)
+            ->where('action', 'update')
+            ->first();
+        expect($allocSubmitEvent)->not->toBeNull()
+            ->and($allocSubmitEvent->actor_id)->toBe($this->operator->id)
+            ->and($allocSubmitEvent->delta['state']['new'])->toBe(PaymentState::Submitted->value);
+    });
+
+    it('records audit events for cashier reversal action per DEC-005', function () {
+        $this->actingAs($this->operator);
+        $stagingService = app(PaymentStagingService::class);
+        $reversalService = app(PaymentReversalService::class);
+
+        $transaction = $stagingService->stage([
+            'idempotency_key' => Str::uuid()->toString(),
+            'partner_id' => $this->verifiedPartner->id,
+            'agreement_id' => $this->agreement->id,
+            'receipt_date' => '2026-03-15',
+            'principal_amount' => 300_000,
+            'interest_amount' => 30_000,
+            'admin_charge_amount' => 0,
+            'other_charge_amount' => 0,
+        ], $this->operator);
+
+        $allocation = $transaction->allocations->first();
+        $submitted = $stagingService->submit($allocation, $this->operator);
+
+        // Cashier directly reverses allocation
+        $reason = 'Koreksi setoran kasir tunggal DEC-005';
+        $compensating = $reversalService->reverse($submitted, $reason, $this->operator);
+
+        expect($compensating->reversal_of_id)->toBe($submitted->id)
+            ->and($compensating->state)->toBe(PaymentState::Reversed);
+
+        // Verify explicit reversal audit event exists
+        $reversalEvent = AuditEvent::where('action', 'reversal')
+            ->where('target_type', PaymentAllocation::class)
+            ->where('target_id', $compensating->id)
+            ->first();
+
+        expect($reversalEvent)->not->toBeNull()
+            ->and($reversalEvent->actor_id)->toBe($this->operator->id)
+            ->and($reversalEvent->reason)->toBe($reason)
+            ->and($reversalEvent->delta['original_allocation_id'])->toBe($submitted->id)
+            ->and($reversalEvent->delta['reversal_allocation_id'])->toBe($compensating->id);
+    });
+});
+
+describe('Gated Operations Throws NotApprovedException (DEC-008, DEC-010)', function () {
     it('blocks posting to ledger per DEC-008', function () {
         $allocation = PaymentAllocation::factory()->create([
             'agreement_id' => $this->agreement->id,
@@ -394,17 +491,6 @@ describe('Gated Operations Throws NotApprovedException (DEC-005, DEC-008, DEC-01
 
         expect(fn () => $stagingService->post($allocation, $this->operator))
             ->toThrow(NotApprovedException::class, 'Payment posting to receivable ledger is blocked pending DEC-008 approval.');
-    });
-
-    it('blocks second review enforcement per DEC-005', function () {
-        $allocation = PaymentAllocation::factory()->create([
-            'agreement_id' => $this->agreement->id,
-        ]);
-
-        $stagingService = app(PaymentStagingService::class);
-
-        expect(fn () => $stagingService->enforceSecondReview($allocation, $this->operator))
-            ->toThrow(NotApprovedException::class, 'Second review requirement configuration is blocked pending DEC-005 approval.');
     });
 
     it('blocks period override per DEC-010 via form request', function () {

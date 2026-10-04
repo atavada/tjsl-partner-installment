@@ -20,6 +20,7 @@ class PaymentStagingService
 {
     /**
      * Stage a payment transaction and allocation proposal.
+     * Cashier inputs directly without secondary approval per DEC-005.
      *
      * @param  array<string, mixed>  $data
      *
@@ -162,7 +163,9 @@ class PaymentStagingService
     }
 
     /**
-     * Submit a draft allocation for review.
+     * Submit a draft allocation for processing.
+     * Per DEC-005, cashier has direct authority without requiring a second reviewer.
+     * All actions remain audited via Auditable lifecycle hooks and reversible via PaymentReversalService.
      */
     public function submit(PaymentAllocation $allocation, User $actor): PaymentAllocation
     {
@@ -198,14 +201,5 @@ class PaymentStagingService
         }
 
         throw NotApprovedException::forPaymentPosting();
-    }
-
-    /**
-     * Enforce second reviewer requirement (DEC-005).
-     * Configurable review step, default mandatory, but enforcement throws NotApprovedException.
-     */
-    public function enforceSecondReview(PaymentAllocation $allocation, User $reviewer): never
-    {
-        throw NotApprovedException::forSecondReview();
     }
 }

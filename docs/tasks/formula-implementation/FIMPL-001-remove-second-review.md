@@ -40,19 +40,19 @@
 
 | Date | Task ID | Label | Summary | Decision ref |
 |------|---------|-------|---------|-------------|
-| TBD | FIMPL-001 | implemented | Removed second-review enforcement; cashier posts directly per DEC-005 | DEC-005 |
+| 2026-10-04 | FIMPL-001 | implemented | Removed second-review enforcement; cashier posts directly per DEC-005 | DEC-005 |
 
 Previous entry to update: TASK-007 row mentioning DEC-005 stub.
 
 ## Acceptance criteria
 
-- [ ] `enforceSecondReview()` removed from `PaymentStagingService`
-- [ ] No code path throws `NotApprovedException::forSecondReview()`
-- [ ] Audit trail covers all payment actions by single cashier
-- [ ] Pest tests pass asserting cashier can stage/submit without second reviewer
-- [ ] Code comments cite `DEC-005` where the second-review was previously required
-- [ ] Change log updated
+- [x] `enforceSecondReview()` removed from `PaymentStagingService`
+- [x] No code path throws `NotApprovedException::forSecondReview()`
+- [x] Audit trail covers all payment actions by single cashier
+- [x] Pest tests pass asserting cashier can stage/submit without second reviewer
+- [x] Code comments cite `DEC-005` where the second-review was previously required
+- [x] Change log updated
 
 ## Status
 
-`pending`
+`completed`

@@ -35,5 +35,6 @@ All notable changes to this project will be documented in this file.
 - Feature tests in `tests/Feature/PartnerSearchTest.php`
 
 ### Changed
+- Removed second-review enforcement (`PaymentStagingService::enforceSecondReview`) per DEC-005 ruling; cashier stages and submits payments directly without secondary approval while retaining full audit logging and reversible compensating entries (FIMPL-001)
 
 ### Fixed

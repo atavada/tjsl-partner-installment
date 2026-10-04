@@ -43,6 +43,9 @@ class NotApprovedException extends RuntimeException
         return new self('Payment period override is blocked pending DEC-010 approval.');
     }
 
+    /**
+     * Retained for future approval workflow; currently not called per DEC-005 ruling.
+     */
     public static function forSecondReview(): self
     {
         return new self('Second review requirement configuration is blocked pending DEC-005 approval.');
