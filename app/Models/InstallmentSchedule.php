@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Concerns\Auditable;
-use App\Exceptions\NotApprovedException;
 use Database\Factories\InstallmentScheduleFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -64,10 +63,40 @@ class InstallmentSchedule extends Model
     }
 
     /**
-     * DEC-008: Balance calculation blocked.
+     * Compute total outstanding balance for this installment schedule row.
+     *
+     * Implements DEC-008 (RESOLVED IN PART 2026-10-03):
+     * outstanding = total_due - total_paid.
+     *
+     * Note: allocation-to-installment linking depends on DP-6 (FIMPL-007, OPEN).
+     * Schedule generation depends on DP-3 / DP-4 (OPEN).
+     *
+     * @return int Total outstanding amount in Rupiah.
      */
-    public function calculateOutstanding(): void
+    public function calculateOutstanding(): int
     {
-        throw NotApprovedException::forBalanceCalculation();
+        return (int) $this->total_due - (int) $this->total_paid;
+    }
+
+    /**
+     * Compute component outstanding breakdown for this installment.
+     *
+     * @return array{
+     *     principal: int,
+     *     interest: int,
+     *     admin_charge: int,
+     *     other_charge: int,
+     *     total: int
+     * }
+     */
+    public function calculateComponentOutstanding(): array
+    {
+        return [
+            'principal' => (int) $this->principal_due - (int) $this->principal_paid,
+            'interest' => (int) $this->interest_due - (int) $this->interest_paid,
+            'admin_charge' => (int) $this->admin_charge_due - (int) $this->admin_charge_paid,
+            'other_charge' => (int) $this->other_charge_due - (int) $this->other_charge_paid,
+            'total' => (int) $this->total_due - (int) $this->total_paid,
+        ];
     }
 }

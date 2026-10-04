@@ -1,16 +1,29 @@
 export interface BalanceData {
     agreement_id: string;
-    status: 'unverified' | 'draft' | string;
+    status: 'unverified' | 'draft' | 'computed' | 'lunas' | 'exception' | string;
     label: string;
     as_of: string | null;
     policy_version: string | null;
+    rule_version?: string;
     is_draft: boolean;
     creates_debt: boolean;
-    principal_remaining: 'unverified' | string;
-    interest_remaining: 'unverified' | string;
-    admin_charge_remaining: 'unverified' | string;
-    other_charge_remaining: 'unverified' | string;
-    total_remaining: 'unverified' | string;
+    data_verified?: boolean;
+    is_lunas?: boolean;
+    contract_principal?: number;
+    contract_charge?: number;
+    contract_total?: number;
+    paid_principal?: number;
+    paid_charge?: number;
+    paid_total?: number;
+    adjustment_principal?: number;
+    adjustment_charge?: number;
+    adjustment_total?: number;
+    principal_remaining: number | 'unverified' | string;
+    interest_remaining: number | 'unverified' | string;
+    admin_charge_remaining: number | 'unverified' | string;
+    other_charge_remaining: number | 'unverified' | string;
+    charge_remaining?: number | 'unverified' | string;
+    total_remaining: number | 'unverified' | string;
     included_event_ids: string[];
     warnings: string[];
 }

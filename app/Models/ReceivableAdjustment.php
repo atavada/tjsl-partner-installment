@@ -71,7 +71,9 @@ class ReceivableAdjustment extends Model
 
     /**
      * Apply adjustment to receivable balance.
-     * Blocked pending DEC-008 approval (balance formula not approved).
+     *
+     * Per DEC-008, balance is computed directly from posted event records in BalanceService.
+     * Direct balance write-back mutation remains blocked pending approval.
      */
     public function applyToBalance(): never
     {

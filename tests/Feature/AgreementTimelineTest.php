@@ -103,12 +103,15 @@ describe('Agreement Timeline Authentication & Authorization', function () {
     });
 });
 
-describe('DEC-008 Balance Stub — Unverified and Never Zero (Gate Test)', function () {
-    it('returns explicit unverified balance status and components, never zero', function () {
+describe('DEC-008 Balance Calculation — Real Computed Balances (Gate Test)', function () {
+    it('returns computed balance status and integer components per DEC-008', function () {
         $partner = Partner::factory()->create();
         $agreement = Agreement::factory()->active()->create([
             'partner_id' => $partner->id,
             'principal_amount' => 20_000_000,
+            'interest_amount' => 1_200_000,
+            'admin_charge_amount' => 0,
+            'other_charge_amount' => 0,
             'total_amount' => 21_200_000,
         ]);
 
@@ -118,13 +121,10 @@ describe('DEC-008 Balance Stub — Unverified and Never Zero (Gate Test)', funct
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
             ->component('Agreements/Show')
-            ->where('agreement.balance.status', 'unverified')
-            ->where('agreement.balance.label', 'Belum Terverifikasi')
-            ->where('agreement.balance.principal_remaining', 'unverified')
-            ->where('agreement.balance.interest_remaining', 'unverified')
-            ->where('agreement.balance.admin_charge_remaining', 'unverified')
-            ->where('agreement.balance.other_charge_remaining', 'unverified')
-            ->where('agreement.balance.total_remaining', 'unverified')
+            ->where('agreement.balance.status', 'computed')
+            ->where('agreement.balance.label', 'Terhitung')
+            ->where('agreement.balance.principal_remaining', 20_000_000)
+            ->where('agreement.balance.total_remaining', 21_200_000)
             ->where('agreement.balance.creates_debt', true)
         );
 
@@ -132,13 +132,10 @@ describe('DEC-008 Balance Stub — Unverified and Never Zero (Gate Test)', funct
         $balanceService = app(BalanceService::class);
         $balance = $balanceService->getBalance($agreement);
 
-        expect($balance['status'])->toBe('unverified');
-        expect($balance['principal_remaining'])->toBe('unverified');
-        expect($balance['total_remaining'])->toBe('unverified');
-        expect($balance['principal_remaining'])->not->toBe(0);
-        expect($balance['total_remaining'])->not->toBe(0);
-        expect($balance['principal_remaining'])->not->toBe('0');
-        expect($balance['total_remaining'])->not->toBe('0');
+        expect($balance['status'])->toBe('computed');
+        expect($balance['principal_remaining'])->toBe(20_000_000);
+        expect($balance['total_remaining'])->toBe(21_200_000);
+        expect($balance['creates_debt'])->toBeTrue();
     });
 
     it('identifies draft agreements as creating no debt (PRD FR-02)', function () {
@@ -223,12 +220,12 @@ describe('PRD §4 Invariant 8 — Three Independent Status Dimensions (Gate Test
         $agreement->refresh();
         $afterCollectibilityBalance = $balanceService->getBalance($agreement);
 
-        // Amounts and unverified status are strictly invariant
+        // Amounts and computed status are strictly invariant
         expect($agreement->principal_amount)->toBe(15_000_000);
         expect($agreement->total_amount)->toBe(16_000_000);
         expect($initialBalance['status'])->toBe($afterSigningBalance['status']);
         expect($afterSigningBalance['status'])->toBe($afterCollectibilityBalance['status']);
-        expect($afterCollectibilityBalance['status'])->toBe('unverified');
+        expect($afterCollectibilityBalance['status'])->toBe('computed');
     });
 });
 

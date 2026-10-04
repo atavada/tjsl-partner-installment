@@ -6,7 +6,6 @@ use App\Enums\AgreementLifecycleStatus;
 use App\Enums\AgreementSigningStatus;
 use App\Enums\CollectibilityStatus;
 use App\Enums\SignatureSummary;
-use App\Exceptions\NotApprovedException;
 use App\Models\Agreement;
 use App\Models\InstallmentSchedule;
 use App\Models\Partner;
@@ -238,11 +237,28 @@ describe('InstallmentSchedule schema and calculation guard (DEC-008)', function 
         ]);
     })->throws(QueryException::class);
 
-    it('blocks balance calculation throwing NotApprovedException per DEC-008', function () {
-        $schedule = InstallmentSchedule::factory()->create();
+    it('computes installment schedule outstanding amount per DEC-008', function () {
+        $schedule = InstallmentSchedule::factory()->create([
+            'principal_due' => 800_000,
+            'interest_due' => 150_000,
+            'admin_charge_due' => 50_000,
+            'other_charge_due' => 0,
+            'total_due' => 1_000_000,
+            'principal_paid' => 400_000,
+            'interest_paid' => 150_000,
+            'admin_charge_paid' => 50_000,
+            'other_charge_paid' => 0,
+            'total_paid' => 600_000,
+        ]);
 
-        expect(fn () => $schedule->calculateOutstanding())
-            ->toThrow(NotApprovedException::class, 'Balance and installment schedule calculation is blocked pending DEC-008 approval.');
+        expect($schedule->calculateOutstanding())->toBe(400_000);
+        expect($schedule->calculateComponentOutstanding())->toBe([
+            'principal' => 400_000,
+            'interest' => 0,
+            'admin_charge' => 0,
+            'other_charge' => 0,
+            'total' => 400_000,
+        ]);
     });
 });
 

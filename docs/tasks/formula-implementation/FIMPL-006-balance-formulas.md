@@ -92,23 +92,23 @@
 
 | Date | Task ID | Label | Summary | Decision ref |
 |------|---------|-------|---------|-------------|
-| TBD | FIMPL-006 | implemented | Balance formulas: remaining = contract + adj - paid per DEC-008 | DEC-008 |
+| 2026-10-04 | FIMPL-006 | implemented | Balance formulas: remaining = contract + adj - paid per DEC-008 | DEC-008 |
 
 Previous entries to update: TASK-003, TASK-005, TASK-006 rows mentioning DEC-008 stub.
 
 ## Acceptance criteria
 
-- [ ] `BalanceService::getBalance()` returns integer component values, not `'unverified'`
-- [ ] Formula: `remaining_P = P_contract + adj_P - paid_P` (same for C)
-- [ ] Reversals handled as separately dated events
-- [ ] Negative remaining surfaces as exception, not floored
-- [ ] LUNAS rule: `remaining == 0 AND data_verified`
-- [ ] Draft agreements create no debt
-- [ ] `rule_version` and `as_of` included in response
-- [ ] Docblocks cite `DEC-008`, metric versions
-- [ ] Pest tests assert computed values (not just `'unverified'`)
-- [ ] Change log updated
+- [x] `BalanceService::getBalance()` returns integer component values, not `'unverified'`
+- [x] Formula: `remaining_P = P_contract + adj_P - paid_P` (same for C)
+- [x] Reversals handled as separately dated events
+- [x] Negative remaining surfaces as exception, not floored
+- [x] LUNAS rule: `remaining == 0 AND data_verified`
+- [x] Draft agreements create no debt
+- [x] `rule_version` and `as_of` included in response
+- [x] Docblocks cite `DEC-008`, metric versions
+- [x] Pest tests assert computed values (not just `'unverified'`)
+- [x] Change log updated
 
 ## Status
 
-`pending`
+`done`

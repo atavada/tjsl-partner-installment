@@ -94,7 +94,7 @@ describe('Payment Staging Authorization and Navigation', function () {
                 ->component('Payments/Create')
                 ->has('partner')
                 ->has('agreement')
-                ->where('agreement.balance.status', 'unverified')
+                ->where('agreement.balance.status', 'computed')
                 ->has('default_idempotency_key')
             );
     });
