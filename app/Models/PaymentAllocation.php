@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 
 class PaymentAllocation extends Model
@@ -58,6 +59,11 @@ class PaymentAllocation extends Model
     protected static function booted(): void
     {
         static::saving(function (self $model): void {
+            // Period derivation: DEC-010 RESOLVED. Default allocation period derived from effective_date.
+            if ($model->period === null && $model->effective_date !== null) {
+                $model->period = Carbon::parse($model->effective_date)->format('Y-m');
+            }
+
             // Component amounts must be non-negative (PRD §4 invariant 1)
             if ($model->principal_amount < 0
                 || $model->interest_amount < 0

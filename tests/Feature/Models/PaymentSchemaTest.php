@@ -61,6 +61,15 @@ describe('BankTransaction immutability and schema invariants', function () {
         expect($txn->receipt_month)->toBe('2026-05');
     });
 
+    it('overwrites forged receipt_month with server-derived YYYY-MM from transaction_datetime (DEC-010)', function () {
+        $txn = BankTransaction::factory()->create([
+            'transaction_datetime' => '2026-05-20 14:00:00',
+            'receipt_month' => '2099-12',
+        ]);
+
+        expect($txn->receipt_month)->toBe('2026-05');
+    });
+
     it('normalizes reference to uppercase', function () {
         $txn = BankTransaction::factory()->create([
             'reference' => 'bca-ref-12345',
@@ -228,6 +237,15 @@ describe('PaymentAllocation components and over-allocation constraints (PRD §4 
             'other_charge_amount' => 0,
             'total_amount' => 700_000,
         ]))->toThrow(InvalidArgumentException::class, 'Allocation exceeds transaction capacity');
+    });
+
+    it('derives allocation period YYYY-MM from effective_date if null (DEC-010)', function () {
+        $alloc = PaymentAllocation::factory()->create([
+            'effective_date' => '2026-05-20',
+            'period' => null,
+        ]);
+
+        expect($alloc->period)->toBe('2026-05');
     });
 });
 

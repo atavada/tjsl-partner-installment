@@ -38,6 +38,11 @@ class NotApprovedException extends RuntimeException
         return new self('Payment posting to receivable ledger is blocked pending DEC-008 approval.');
     }
 
+    /**
+     * Payment period override is blocked pending DEC-010 approval.
+     * Note: Period derivation from receipt date is RESOLVED per DEC-010.
+     * Override authority and closed-period allocation rules remain OPEN.
+     */
     public static function forPeriodOverride(): self
     {
         return new self('Payment period override is blocked pending DEC-010 approval.');

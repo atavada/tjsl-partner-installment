@@ -107,7 +107,10 @@ class StorePaymentRequest extends FormRequest
                 }
             }
 
-            // Period override is blocked pending DEC-010
+            // Period derivation: DEC-010 RESOLVED. Override authority: still OPEN.
+            // receipt_month is derived server-side from receipt_date as YYYY-MM.
+            // Matching period override (override == derived month) is accepted silently.
+            // Differing period override throws NotApprovedException::forPeriodOverride() pending approval.
             if ($this->filled('period_override')) {
                 $receiptDate = $this->input('receipt_date');
                 $derivedMonth = $receiptDate ? Carbon::parse($receiptDate)->format('Y-m') : null;

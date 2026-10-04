@@ -69,8 +69,9 @@ class BankTransaction extends Model
                 $model->reference_normalized = mb_strtoupper(trim($model->reference));
             }
 
-            // Derive receipt_month from transaction_datetime if null (DEC-010)
-            if ($model->receipt_month === null && $model->transaction_datetime !== null) {
+            // Period derivation: DEC-010 RESOLVED. Always derive receipt_month server-side from transaction_datetime.
+            // Client/browser payload cannot forge receipt_month.
+            if ($model->transaction_datetime !== null) {
                 $model->receipt_month = $model->transaction_datetime->format('Y-m');
             }
         });

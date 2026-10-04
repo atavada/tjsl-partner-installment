@@ -53,19 +53,19 @@
 
 | Date | Task ID | Label | Summary | Decision ref |
 |------|---------|-------|---------|-------------|
-| TBD | FIMPL-005 | implemented | Period derivation from receipt date per DEC-010; override authority still stubbed | DEC-010 |
+| 2026-10-04 | FIMPL-005 | implemented | Period derivation from receipt date per DEC-010; override authority still stubbed | DEC-010 |
 
 Previous entry to update: TASK-006 and TASK-007 rows mentioning DEC-010 stub.
 
 ## Acceptance criteria
 
-- [ ] `receipt_month` derived server-side from `receipt_date` as `YYYY-MM`
-- [ ] Matching period override accepted silently
-- [ ] Differing period override still throws (override authority OPEN)
-- [ ] Docblock cites `DEC-010` with clear resolved/OPEN distinction
-- [ ] Pest tests assert derivation and override behavior
-- [ ] Change log updated
+- [x] `receipt_month` derived server-side from `receipt_date` as `YYYY-MM`
+- [x] Matching period override accepted silently
+- [x] Differing period override still throws (override authority OPEN)
+- [x] Docblock cites `DEC-010` with clear resolved/OPEN distinction
+- [x] Pest tests assert derivation and override behavior
+- [x] Change log updated
 
 ## Status
 
-`pending`
+`implemented`

@@ -60,11 +60,19 @@ class PaymentStagingService
             );
         }
 
-        // 3. Format receipt datetime and derive period YYYY-MM (DEC-010 stub)
+        // 3. Format receipt datetime and derive period YYYY-MM per DEC-010
+        // Period derivation: DEC-010 RESOLVED. Override authority: still OPEN.
         $receiptDate = (string) $data['receipt_date'];
         $receiptCarbon = Carbon::parse($receiptDate);
         $transactionDatetime = $receiptCarbon->setTime(12, 0, 0)->format('Y-m-d H:i:s');
         $derivedPeriod = $receiptCarbon->format('Y-m');
+
+        if (isset($data['period_override']) && trim((string) $data['period_override']) !== '') {
+            $override = trim((string) $data['period_override']);
+            if ($override !== $derivedPeriod) {
+                throw NotApprovedException::forPeriodOverride();
+            }
+        }
 
         $source = (string) ($data['source'] ?? 'MANUAL_CAPTURE');
         $reference = isset($data['reference']) && trim((string) $data['reference']) !== ''

@@ -512,3 +512,120 @@ describe('Gated Operations Throws NotApprovedException (DEC-008, DEC-010)', func
         $response->assertStatus(500);
     });
 });
+
+describe('Payment period derivation and override governance (DEC-010, FIMPL-005)', function () {
+    it('derives receipt_month as YYYY-MM from receipt_date on transaction and period on allocation (DEC-010)', function () {
+        $response = $this->actingAs($this->operator)
+            ->postJson("/partners/{$this->verifiedPartner->id}/agreements/{$this->agreement->id}/payments", [
+                'idempotency_key' => Str::uuid()->toString(),
+                'partner_id' => $this->verifiedPartner->id,
+                'agreement_id' => $this->agreement->id,
+                'receipt_date' => '2026-07-22',
+                'principal_amount' => 500_000,
+                'interest_amount' => 50_000,
+                'admin_charge_amount' => 0,
+                'other_charge_amount' => 0,
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.receipt_month', '2026-07')
+            ->assertJsonPath('data.allocations.0.period', '2026-07');
+
+        $txn = BankTransaction::where('receipt_month', '2026-07')->latest()->first();
+        expect($txn)->not->toBeNull()
+            ->and($txn->receipt_month)->toBe('2026-07');
+
+        $alloc = PaymentAllocation::where('bank_transaction_id', $txn->id)->first();
+        expect($alloc)->not->toBeNull()
+            ->and($alloc->period)->toBe('2026-07');
+    });
+
+    it('accepts matching period_override silently without exception (DEC-010)', function () {
+        // Matching override: receipt_date 2026-07-22 -> derived 2026-07, override 2026-07
+        $response = $this->actingAs($this->operator)
+            ->postJson("/partners/{$this->verifiedPartner->id}/agreements/{$this->agreement->id}/payments", [
+                'idempotency_key' => Str::uuid()->toString(),
+                'partner_id' => $this->verifiedPartner->id,
+                'agreement_id' => $this->agreement->id,
+                'receipt_date' => '2026-07-22',
+                'period_override' => '2026-07',
+                'period_override_reason' => 'Matching period explicit confirmation',
+                'principal_amount' => 500_000,
+                'interest_amount' => 0,
+                'admin_charge_amount' => 0,
+                'other_charge_amount' => 0,
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.receipt_month', '2026-07')
+            ->assertJsonPath('data.allocations.0.period', '2026-07');
+
+        // Direct staging service call also accepts matching override
+        $stagingService = app(PaymentStagingService::class);
+        $txn = $stagingService->stage([
+            'idempotency_key' => Str::uuid()->toString(),
+            'agreement_id' => $this->agreement->id,
+            'receipt_date' => '2026-08-10',
+            'period_override' => '2026-08',
+            'period_override_reason' => 'Matching override direct service test',
+            'principal_amount' => 200_000,
+            'interest_amount' => 0,
+            'admin_charge_amount' => 0,
+            'other_charge_amount' => 0,
+        ], $this->operator);
+
+        expect($txn->receipt_month)->toBe('2026-08');
+    });
+
+    it('blocks differing period override via direct staging service per DEC-010', function () {
+        $stagingService = app(PaymentStagingService::class);
+
+        expect(fn () => $stagingService->stage([
+            'idempotency_key' => Str::uuid()->toString(),
+            'agreement_id' => $this->agreement->id,
+            'receipt_date' => '2026-03-15',
+            'period_override' => '2025-12',
+            'period_override_reason' => 'Backdated adjustment attempt',
+            'principal_amount' => 500_000,
+            'interest_amount' => 0,
+            'admin_charge_amount' => 0,
+            'other_charge_amount' => 0,
+        ], $this->operator))->toThrow(NotApprovedException::class);
+    });
+
+    it('computes receipt_month strictly server-side ignoring forged client input (DEC-010)', function () {
+        // HTTP payload contains forged receipt_month '2099-12'
+        $response = $this->actingAs($this->operator)
+            ->postJson("/partners/{$this->verifiedPartner->id}/agreements/{$this->agreement->id}/payments", [
+                'idempotency_key' => Str::uuid()->toString(),
+                'partner_id' => $this->verifiedPartner->id,
+                'agreement_id' => $this->agreement->id,
+                'receipt_date' => '2026-04-10',
+                'receipt_month' => '2099-12',
+                'principal_amount' => 300_000,
+                'interest_amount' => 0,
+                'admin_charge_amount' => 0,
+                'other_charge_amount' => 0,
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.receipt_month', '2026-04');
+
+        // Direct staging service call with forged receipt_month '2099-12'
+        $stagingService = app(PaymentStagingService::class);
+        $txn = $stagingService->stage([
+            'idempotency_key' => Str::uuid()->toString(),
+            'agreement_id' => $this->agreement->id,
+            'receipt_date' => '2026-04-11',
+            'receipt_month' => '2099-12',
+            'principal_amount' => 350_000,
+            'interest_amount' => 0,
+            'admin_charge_amount' => 0,
+            'other_charge_amount' => 0,
+        ], $this->operator);
+
+        expect($txn->receipt_month)->toBe('2026-04');
+        $alloc = PaymentAllocation::where('bank_transaction_id', $txn->id)->first();
+        expect($alloc->period)->toBe('2026-04');
+    });
+});
