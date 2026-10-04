@@ -15,6 +15,9 @@ class VirtualAccountPolicy
         return $user->hasPermission(Permission::PartnerView);
     }
 
+    /**
+     * Reveal VA number: allowed for non-viewer roles by default, denied for Auditor (DEC-004).
+     */
     public function revealVaNumber(User $user, VirtualAccount $va): bool
     {
         return $user->hasPermission(Permission::VaReveal);

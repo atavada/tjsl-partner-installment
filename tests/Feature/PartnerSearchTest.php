@@ -272,7 +272,7 @@ describe('Verification Badges as Text (FR-01)', function () {
 });
 
 describe('Sensitive Field Masking (DEC-004)', function () {
-    it('masks NIK and VA numbers in search and detail responses', function () {
+    it('returns unmasked NIK and VA numbers for authorized operator per DEC-004', function () {
         $partner = Partner::factory()->create([
             'nik' => '3512345678900001',
             'nik_normalized' => Partner::normalizeNik('3512345678900001'),
@@ -285,6 +285,31 @@ describe('Sensitive Field Masking (DEC-004)', function () {
         ]);
 
         $response = $this->actingAs($this->authorizedUser)->get("/partners/{$partner->id}");
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->where('partner.nik', '3512345678900001')
+            ->where('partner.virtual_accounts.0.va_number', '0000111122223333')
+            ->where('partner.is_masked', false)
+        );
+    });
+
+    it('masks NIK and VA numbers for viewer (Auditor) role per DEC-004', function () {
+        $partner = Partner::factory()->create([
+            'nik' => '3512345678900001',
+            'nik_normalized' => Partner::normalizeNik('3512345678900001'),
+        ]);
+
+        VirtualAccount::factory()->create([
+            'partner_id' => $partner->id,
+            'va_number' => '0000111122223333',
+            'va_number_normalized' => VirtualAccount::normalizeVaNumber('0000111122223333'),
+        ]);
+
+        $auditor = User::factory()->auditor()->create();
+        $auditor->grantPermission(Permission::PartnerView);
+
+        $response = $this->actingAs($auditor)->get("/partners/{$partner->id}");
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page

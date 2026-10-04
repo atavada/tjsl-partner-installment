@@ -6,7 +6,7 @@ namespace App\Enums;
 
 enum Permission: string
 {
-    // DEC-004 Sensitive field permissions (all masked by default)
+    // DEC-004 Sensitive field permissions (all masked by default for Viewer/Auditor)
     case NikReveal = 'nik.reveal';
     case PhoneReveal = 'phone.reveal';
     case AddressReveal = 'address.reveal';
@@ -28,4 +28,24 @@ enum Permission: string
     case PolicyDefine = 'policy.define';
     case UsersManage = 'users.manage';
     case ConfigManage = 'config.manage';
+
+    /**
+     * Determine whether this permission governs sensitive field or document data.
+     *
+     * Per DEC-004: All roles except Viewer (Auditor) may access sensitive data
+     * (NIK, phone, address, VA, documents) by default. Scoped export (SensitiveExport)
+     * requires explicit grant per DEC-009.
+     */
+    public function isSensitive(): bool
+    {
+        return match ($this) {
+            self::NikReveal,
+            self::PhoneReveal,
+            self::AddressReveal,
+            self::VaReveal,
+            self::DocumentView,
+            self::DocumentDownload => true,
+            default => false,
+        };
+    }
 }

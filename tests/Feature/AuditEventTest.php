@@ -330,7 +330,8 @@ describe('Authorization Failures and Unauthorized Access Audit', function () {
         $masking = app(MaskingService::class);
         $partner = Partner::factory()->create(['nik' => '3271012345678901']);
 
-        $unauthorizedUser = User::factory()->operator()->create();
+        // DEC-004: Auditor (viewer) is denied sensitive field reveal
+        $unauthorizedUser = User::factory()->auditor()->create();
 
         try {
             $masking->reveal($unauthorizedUser, $partner, 'nik', 'Audit test reveal');

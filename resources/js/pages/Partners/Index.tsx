@@ -194,7 +194,7 @@ export default function Index({ partners, filters }: IndexProps) {
                                         <tr>
                                             <th className="px-6 py-3">NO ID</th>
                                             <th className="px-6 py-3">Nama Mitra & Alias</th>
-                                            <th className="px-6 py-3">NIK (Masked)</th>
+                                            <th className="px-6 py-3">NIK</th>
                                             <th className="px-6 py-3">Wilayah</th>
                                             <th className="px-6 py-3">Status Verifikasi</th>
                                             <th className="px-6 py-3">Perjanjian</th>

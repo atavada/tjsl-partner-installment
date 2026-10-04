@@ -71,6 +71,9 @@ class MaskingService
     }
 
     /**
+     * Mask sensitive partner fields based on viewer role (DEC-004).
+     * Non-viewer roles see fields unmasked; Viewer (Auditor) or guest sees masked fields.
+     *
      * @return array<string, mixed>
      */
     public function maskPartner(Partner $partner, ?User $viewer = null): array
@@ -95,6 +98,9 @@ class MaskingService
     }
 
     /**
+     * Mask virtual account number based on viewer role (DEC-004).
+     * Non-viewer roles see VA unmasked; Viewer (Auditor) or guest sees masked VA.
+     *
      * @return array<string, mixed>
      */
     public function maskVirtualAccount(VirtualAccount $va, ?User $viewer = null): array
@@ -115,7 +121,7 @@ class MaskingService
     }
 
     /**
-     * Reveal a sensitive field with authorization check and audit logging without raw values.
+     * Reveal a sensitive field with authorization check and audit logging without raw values (DEC-004).
      *
      * @throws AuthorizationException
      */

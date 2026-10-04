@@ -36,16 +36,25 @@ class PartnerPolicy
         return false;
     }
 
+    /**
+     * Reveal NIK: allowed for non-viewer roles by default, denied for Auditor (DEC-004).
+     */
     public function revealNik(User $user, Partner $partner): bool
     {
         return $user->hasPermission(Permission::NikReveal);
     }
 
+    /**
+     * Reveal phone: allowed for non-viewer roles by default, denied for Auditor (DEC-004).
+     */
     public function revealPhone(User $user, Partner $partner): bool
     {
         return $user->hasPermission(Permission::PhoneReveal);
     }
 
+    /**
+     * Reveal address: allowed for non-viewer roles by default, denied for Auditor (DEC-004).
+     */
     public function revealAddress(User $user, Partner $partner): bool
     {
         return $user->hasPermission(Permission::AddressReveal);

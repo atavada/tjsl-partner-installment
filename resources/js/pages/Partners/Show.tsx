@@ -80,7 +80,7 @@ export default function Show({ partner }: ShowProps) {
                                     </p>
                                 </div>
                                 <div>
-                                    <span className="text-muted-foreground text-xs">NIK (Masked)</span>
+                                    <span className="text-muted-foreground text-xs">NIK{partner.is_masked ? ' (Masked)' : ''}</span>
                                     <p className="text-foreground font-mono font-medium">{partner.nik ?? '-'}</p>
                                 </div>
                                 <div>
@@ -117,17 +117,19 @@ export default function Show({ partner }: ShowProps) {
                         </CardHeader>
                         <CardContent className="space-y-4 text-sm">
                             <div>
-                                <span className="text-muted-foreground text-xs">Nomor Telepon (Masked)</span>
+                                <span className="text-muted-foreground text-xs">Nomor Telepon{partner.is_masked ? ' (Masked)' : ''}</span>
                                 <p className="text-foreground font-mono font-medium">{partner.phone ?? '-'}</p>
                             </div>
                             <div>
-                                <span className="text-muted-foreground text-xs">Alamat Domisili (Masked)</span>
+                                <span className="text-muted-foreground text-xs">Alamat Domisili{partner.is_masked ? ' (Masked)' : ''}</span>
                                 <p className="text-foreground font-medium">{partner.address ?? '-'}</p>
                             </div>
-                            <div className="border-muted bg-muted/30 text-muted-foreground rounded-md border p-3 text-xs">
-                                <ShieldCheck className="text-primary mb-1 inline h-3.5 w-3.5" /> NIK, nomor telepon, dan alamat dimaskir secara
-                                default sesuai kebijakan privasi (DEC-004).
-                            </div>
+                            {partner.is_masked && (
+                                <div className="border-muted bg-muted/30 text-muted-foreground rounded-md border p-3 text-xs">
+                                    <ShieldCheck className="text-primary mb-1 inline h-3.5 w-3.5" /> NIK, nomor telepon, dan alamat dimaskir untuk
+                                    peran Viewer sesuai kebijakan privasi (DEC-004).
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

@@ -144,26 +144,41 @@ describe('EnsureRoleAuthorized Middleware (Gate test: unauthorized posting denie
 });
 
 describe('Deny-by-Default Policies (DEC-009)', function () {
-    it('denies Partner actions by default for non-admin roles', function () {
+    it('denies Partner actions by default for non-admin roles while respecting DEC-004 sensitive access', function () {
         $partner = Partner::factory()->create();
-        $roles = [
+        $nonViewers = [
             User::factory()->operator()->create(),
             User::factory()->reconciliationReviewer()->create(),
             User::factory()->processOwner()->create(),
-            User::factory()->auditor()->create(),
         ];
 
-        foreach ($roles as $user) {
+        // DEC-009: Action-level capabilities denied by default for non-admin
+        // DEC-004: Sensitive field access granted by default for non-viewer roles
+        foreach ($nonViewers as $user) {
             expect(Gate::forUser($user)->allows('viewAny', Partner::class))->toBeFalse();
             expect(Gate::forUser($user)->allows('view', $partner))->toBeFalse();
             expect(Gate::forUser($user)->allows('create', Partner::class))->toBeFalse();
             expect(Gate::forUser($user)->allows('update', $partner))->toBeFalse();
             expect(Gate::forUser($user)->allows('delete', $partner))->toBeFalse();
-            expect(Gate::forUser($user)->allows('revealNik', $partner))->toBeFalse();
-            expect(Gate::forUser($user)->allows('revealPhone', $partner))->toBeFalse();
-            expect(Gate::forUser($user)->allows('revealAddress', $partner))->toBeFalse();
             expect(Gate::forUser($user)->allows('export', Partner::class))->toBeFalse();
+
+            // DEC-004: Non-viewer roles may see sensitive fields by default
+            expect(Gate::forUser($user)->allows('revealNik', $partner))->toBeTrue();
+            expect(Gate::forUser($user)->allows('revealPhone', $partner))->toBeTrue();
+            expect(Gate::forUser($user)->allows('revealAddress', $partner))->toBeTrue();
         }
+
+        // DEC-004: Viewer role (Auditor) is denied all sensitive field access
+        $auditor = User::factory()->auditor()->create();
+        expect(Gate::forUser($auditor)->allows('viewAny', Partner::class))->toBeFalse();
+        expect(Gate::forUser($auditor)->allows('view', $partner))->toBeFalse();
+        expect(Gate::forUser($auditor)->allows('create', Partner::class))->toBeFalse();
+        expect(Gate::forUser($auditor)->allows('update', $partner))->toBeFalse();
+        expect(Gate::forUser($auditor)->allows('delete', $partner))->toBeFalse();
+        expect(Gate::forUser($auditor)->allows('export', Partner::class))->toBeFalse();
+        expect(Gate::forUser($auditor)->allows('revealNik', $partner))->toBeFalse();
+        expect(Gate::forUser($auditor)->allows('revealPhone', $partner))->toBeFalse();
+        expect(Gate::forUser($auditor)->allows('revealAddress', $partner))->toBeFalse();
     });
 
     it('allows system_admin to perform actions via Gate::before superadmin bypass', function () {
@@ -203,17 +218,21 @@ describe('Deny-by-Default Policies (DEC-009)', function () {
         expect(Gate::forUser($user)->allows('view', $partner))->toBeFalse();
     });
 
-    it('denies VirtualAccount actions by default', function () {
+    it('denies VirtualAccount actions by default while allowing non-viewer VA reveal per DEC-004', function () {
         $partner = Partner::factory()->create();
         $va = VirtualAccount::factory()->create(['partner_id' => $partner->id]);
-        $user = User::factory()->operator()->create();
+        $operator = User::factory()->operator()->create();
+        $auditor = User::factory()->auditor()->create();
 
-        expect(Gate::forUser($user)->allows('view', $va))->toBeFalse();
-        expect(Gate::forUser($user)->allows('revealVaNumber', $va))->toBeFalse();
-        expect(Gate::forUser($user)->allows('delete', $va))->toBeFalse();
+        // DEC-009: Action capabilities denied by default
+        expect(Gate::forUser($operator)->allows('view', $va))->toBeFalse();
+        expect(Gate::forUser($operator)->allows('delete', $va))->toBeFalse();
 
-        $user->grantPermission(Permission::VaReveal);
-        expect(Gate::forUser($user)->allows('revealVaNumber', $va))->toBeTrue();
+        // DEC-004: Non-viewer allowed VA reveal by default
+        expect(Gate::forUser($operator)->allows('revealVaNumber', $va))->toBeTrue();
+
+        // DEC-004: Viewer (Auditor) denied VA reveal
+        expect(Gate::forUser($auditor)->allows('revealVaNumber', $va))->toBeFalse();
     });
 });
 
@@ -249,16 +268,16 @@ describe('Sensitive Field Masking (DEC-004)', function () {
         expect($masking->maskVaNumber(null))->toBeNull();
     });
 
-    it('returns masked partner payload by default', function () {
+    it('returns masked partner payload for viewer (Auditor) role per DEC-004', function () {
         $masking = new MaskingService;
         $partner = Partner::factory()->create([
             'nik' => '3512345678900001',
             'phone' => '08123456789',
             'address' => 'Jl. Pahlawan No. 45',
         ]);
-        $operator = User::factory()->operator()->create();
+        $auditor = User::factory()->auditor()->create();
 
-        $payload = $masking->maskPartner($partner, $operator);
+        $payload = $masking->maskPartner($partner, $auditor);
 
         expect($payload['nik'])->toBe('35**********0001');
         expect($payload['phone'])->toBe('081******89');
@@ -267,36 +286,76 @@ describe('Sensitive Field Masking (DEC-004)', function () {
         expect($payload['is_masked'])->toBeTrue();
     });
 
-    it('unmasks fields in payload when explicit permissions are granted', function () {
+    it('returns masked partner payload for unauthenticated guest viewer', function () {
         $masking = new MaskingService;
         $partner = Partner::factory()->create([
             'nik' => '3512345678900001',
             'phone' => '08123456789',
             'address' => 'Jl. Pahlawan No. 45',
         ]);
-        $user = User::factory()->reconciliationReviewer()->create();
-        $user->grantPermission(Permission::NikReveal)
-            ->grantPermission(Permission::PhoneReveal)
-            ->grantPermission(Permission::AddressReveal);
 
-        $payload = $masking->maskPartner($partner, $user);
+        $payload = $masking->maskPartner($partner, null);
 
-        expect($payload['nik'])->toBe('3512345678900001');
-        expect($payload['phone'])->toBe('08123456789');
-        expect($payload['address'])->toBe('Jl. Pahlawan No. 45');
-        expect($payload['is_masked'])->toBeFalse();
+        expect($payload['nik'])->toBe('35**********0001');
+        expect($payload['phone'])->toBe('081******89');
+        expect($payload['address'])->toStartWith('Jl. ');
+        expect($payload['address'])->toContain('*');
+        expect($payload['is_masked'])->toBeTrue();
+    });
+
+    it('returns unmasked partner payload by default for non-viewer roles per DEC-004', function () {
+        $masking = new MaskingService;
+        $partner = Partner::factory()->create([
+            'nik' => '3512345678900001',
+            'phone' => '08123456789',
+            'address' => 'Jl. Pahlawan No. 45',
+        ]);
+        $nonViewers = [
+            User::factory()->operator()->create(),
+            User::factory()->reconciliationReviewer()->create(),
+            User::factory()->processOwner()->create(),
+            User::factory()->systemAdmin()->create(),
+        ];
+
+        foreach ($nonViewers as $user) {
+            $payload = $masking->maskPartner($partner, $user);
+
+            expect($payload['nik'])->toBe('3512345678900001');
+            expect($payload['phone'])->toBe('08123456789');
+            expect($payload['address'])->toBe('Jl. Pahlawan No. 45');
+            expect($payload['is_masked'])->toBeFalse();
+        }
+    });
+
+    it('masks VirtualAccount payload for Auditor and reveals for non-viewer per DEC-004', function () {
+        $masking = new MaskingService;
+        $partner = Partner::factory()->create();
+        $va = VirtualAccount::factory()->create([
+            'partner_id' => $partner->id,
+            'va_number' => '988212345678',
+        ]);
+        $auditor = User::factory()->auditor()->create();
+        $operator = User::factory()->operator()->create();
+
+        $maskedPayload = $masking->maskVirtualAccount($va, $auditor);
+        expect($maskedPayload['va_number'])->toBe('9882****5678');
+        expect($maskedPayload['is_masked'])->toBeTrue();
+
+        $unmaskedPayload = $masking->maskVirtualAccount($va, $operator);
+        expect($unmaskedPayload['va_number'])->toBe('988212345678');
+        expect($unmaskedPayload['is_masked'])->toBeFalse();
     });
 });
 
 describe('Sensitive Field Reveal and Audit Logging (DEC-004 & Gate Test)', function () {
-    it('denies unmasking without explicit grant and logs audit attempt without raw PII', function () {
+    it('denies unmasking for viewer (Auditor) and logs audit attempt without raw PII', function () {
         Log::spy();
         $masking = new MaskingService;
         $partner = Partner::factory()->create(['nik' => '3512345678900001']);
-        $operator = User::factory()->operator()->create();
+        $auditor = User::factory()->auditor()->create();
 
         try {
-            $masking->reveal($operator, $partner, 'nik', 'Identity verification for audit');
+            $masking->reveal($auditor, $partner, 'nik', 'Identity verification for audit');
             $this->fail('Expected AuthorizationException was not thrown');
         } catch (AuthorizationException $e) {
             expect($e->getMessage())->toContain('Access denied for sensitive field reveal: [nik]');
@@ -315,14 +374,13 @@ describe('Sensitive Field Reveal and Audit Logging (DEC-004 & Gate Test)', funct
         })->once();
     });
 
-    it('allows unmasking with explicit grant and logs success without raw PII', function () {
+    it('allows unmasking by default for non-viewer roles and logs success without raw PII', function () {
         Log::spy();
         $masking = new MaskingService;
         $partner = Partner::factory()->create(['nik' => '3512345678900001']);
-        $reviewer = User::factory()->reconciliationReviewer()->create();
-        $reviewer->grantPermission(Permission::NikReveal);
+        $operator = User::factory()->operator()->create();
 
-        $revealed = $masking->reveal($reviewer, $partner, 'nik', 'Authorized case review');
+        $revealed = $masking->reveal($operator, $partner, 'nik', 'Authorized case review');
 
         expect($revealed)->toBe('3512345678900001');
 

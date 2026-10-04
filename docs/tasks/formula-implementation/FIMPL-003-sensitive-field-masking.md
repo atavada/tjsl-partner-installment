@@ -47,19 +47,19 @@
 
 | Date | Task ID | Label | Summary | Decision ref |
 |------|---------|-------|---------|-------------|
-| TBD | FIMPL-003 | implemented | Sensitive-field masking: viewer-only deny per DEC-004 | DEC-004 |
+| 2026-10-04 | FIMPL-003 | implemented | Sensitive-field masking: viewer-only deny per DEC-004 | DEC-004 |
 
 Previous entry to update: TASK-002 row mentioning DEC-004 stub.
 
 ## Acceptance criteria
 
-- [ ] Non-viewer roles see sensitive fields unmasked
-- [ ] Viewer role remains masked/denied
-- [ ] Granular Permission enum retained for logging
-- [ ] Docblock on masking logic cites `DEC-004`
-- [ ] Pest tests assert role-based masking behavior
-- [ ] Change log updated
+- [x] Non-viewer roles see sensitive fields unmasked
+- [x] Viewer role remains masked/denied
+- [x] Granular Permission enum retained for logging
+- [x] Docblock on masking logic cites `DEC-004`
+- [x] Pest tests assert role-based masking behavior
+- [x] Change log updated
 
 ## Status
 
-`pending`
+`completed`

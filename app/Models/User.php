@@ -112,9 +112,22 @@ class User extends Authenticatable
         return $this->role->isFinancial();
     }
 
+    /**
+     * Determine if the user has a specific permission.
+     *
+     * Per DEC-004: All roles except Viewer (Auditor) may access sensitive data
+     * (NIK, phone, address, VA, documents) by default.
+     * Per DEC-009: Action-level capabilities remain deny-by-default.
+     */
     public function hasPermission(Permission|string $permission): bool
     {
+        $permEnum = $permission instanceof Permission ? $permission : Permission::tryFrom($permission);
         $permValue = $permission instanceof Permission ? $permission->value : $permission;
+
+        // DEC-004: Viewer role (Auditor) strictly denied sensitive data
+        if ($this->role === Role::Auditor && $permEnum !== null && $permEnum->isSensitive()) {
+            return false;
+        }
 
         if (! empty($this->grantedPermissions[$permValue])) {
             return true;
@@ -122,7 +135,16 @@ class User extends Authenticatable
 
         $persisted = $this->permissions ?? [];
 
-        return ! empty($persisted[$permValue]);
+        if (! empty($persisted[$permValue])) {
+            return true;
+        }
+
+        // DEC-004: Non-viewer roles granted sensitive data access by default
+        if ($permEnum !== null && $permEnum->isSensitive()) {
+            return true;
+        }
+
+        return false;
     }
 
     public function grantPermission(Permission|string $permission): self
