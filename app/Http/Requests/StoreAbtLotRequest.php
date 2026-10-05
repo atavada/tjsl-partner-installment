@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
-use App\Models\BankTransaction;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -22,7 +21,7 @@ class StoreAbtLotRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can('create', BankTransaction::class) ?? false;
+        return $this->user()?->can('createAbt', FundLot::class) ?? false;
     }
 
     /**

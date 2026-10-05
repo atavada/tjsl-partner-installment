@@ -20,7 +20,9 @@ class IdentifyAbtLotRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        $fundLot = $this->route('fundLot');
+
+        return $this->user()?->can('identify', $fundLot) ?? false;
     }
 
     /**

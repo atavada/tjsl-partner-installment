@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Enums\Permission;
+use App\Models\FundLot;
 use App\Models\Partner;
 use App\Models\User;
 use App\Models\VirtualAccount;
+use App\Policies\FundLotPolicy;
 use App\Policies\PartnerPolicy;
 use App\Policies\VirtualAccountPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -23,6 +25,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         Partner::class => PartnerPolicy::class,
         VirtualAccount::class => VirtualAccountPolicy::class,
+        FundLot::class => FundLotPolicy::class,
     ];
 
     /**

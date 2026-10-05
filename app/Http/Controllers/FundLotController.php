@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -33,6 +34,8 @@ class FundLotController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection|InertiaResponse
     {
+        Gate::authorize('viewAny', FundLot::class);
+
         $query = FundLot::query()
             ->with(['partner', 'identifiedBy', 'sourceAgreement', 'bankTransaction'])
             ->orderByDesc('created_at');
@@ -104,6 +107,8 @@ class FundLotController extends Controller
      */
     public function storeAbt(StoreAbtLotRequest $request): JsonResponse|RedirectResponse
     {
+        Gate::authorize('createAbt', FundLot::class);
+
         $validated = $request->validated();
         $actor = $request->user();
 
@@ -176,6 +181,8 @@ class FundLotController extends Controller
      */
     public function identify(IdentifyAbtLotRequest $request, FundLot $fundLot): JsonResponse|RedirectResponse
     {
+        Gate::authorize('identify', $fundLot);
+
         $partner = Partner::findOrFail($request->validated('partner_id'));
 
         $fundLot->identify(
@@ -198,6 +205,8 @@ class FundLotController extends Controller
      */
     public function show(FundLot $fundLot): FundLotResource
     {
+        Gate::authorize('view', $fundLot);
+
         return new FundLotResource(
             $fundLot->load(['partner', 'identifiedBy', 'sourceAgreement', 'bankTransaction'])
         );
