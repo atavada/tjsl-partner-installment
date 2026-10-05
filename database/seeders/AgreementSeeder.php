@@ -14,7 +14,7 @@ use App\Models\AgreementDocument;
 use App\Models\AgreementTransition;
 use App\Models\InstallmentSchedule;
 use App\Models\Partner;
-use Carbon\Carbon;
+use App\Services\ScheduleGeneratorService;
 use Illuminate\Database\Seeder;
 
 class AgreementSeeder extends Seeder
@@ -54,15 +54,19 @@ class AgreementSeeder extends Seeder
                 'batch_year' => '2026',
                 'business_group' => 'Kelompok Tani Makmur',
                 'source_row_number' => 101,
+                'tenor_months' => 12,
                 'application_date' => '2026-01-10',
                 'contract_date' => '2026-01-15',
                 'effective_date' => '2026-02-01',
+                'loan_start_date' => '2026-01-15',
+                'first_due_date' => '2026-02-01',
                 'maturity_date' => '2028-01-31',
                 'principal_amount' => 20_000_000,
                 'interest_amount' => 1_200_000,
                 'admin_charge_amount' => 100_000,
                 'other_charge_amount' => 0,
                 'total_amount' => 21_300_000,
+                'interest_rate_percent' => '6.00',
                 'lifecycle_status' => AgreementLifecycleStatus::Active,
                 'legacy_lifecycle_status' => 'Aktif',
                 'collectibility_status' => CollectibilityStatus::Lancar,
@@ -93,25 +97,36 @@ class AgreementSeeder extends Seeder
             ]
         );
 
-        // 12 monthly installment schedules
-        for ($month = 1; $month <= 12; $month++) {
-            $dueDate = Carbon::parse('2026-02-01')->addMonths($month - 1)->toDateString();
-            InstallmentSchedule::firstOrCreate(
+        // 12 monthly installment schedules (EDATE calendar math with integer remainder adjustment, DEC-008, TASK-REM-006)
+        /** @var ScheduleGeneratorService $scheduleGenerator */
+        $scheduleGenerator = app(ScheduleGeneratorService::class);
+        $scheduleRows = $scheduleGenerator->calculateSchedules(
+            principal: 20_000_000,
+            interest: 1_200_000,
+            adminCharge: 100_000,
+            otherCharge: 0,
+            tenor: 12,
+            firstDueDate: '2026-02-01'
+        );
+
+        foreach ($scheduleRows as $row) {
+            $month = $row['installment_number'];
+            InstallmentSchedule::updateOrCreate(
                 ['agreement_id' => $agreement1->id, 'installment_number' => $month],
                 [
-                    'due_date' => $dueDate,
-                    'principal_due' => 1_666_667,
-                    'interest_due' => 100_000,
-                    'admin_charge_due' => 8_333,
-                    'other_charge_due' => 0,
-                    'total_due' => 1_775_000,
+                    'due_date' => $row['due_date'],
+                    'principal_due' => $row['principal_due'],
+                    'interest_due' => $row['interest_due'],
+                    'admin_charge_due' => $row['admin_charge_due'],
+                    'other_charge_due' => $row['other_charge_due'],
+                    'total_due' => $row['total_due'],
                     'principal_paid' => $month === 1 ? 891_667 : 0,
                     'interest_paid' => $month === 1 ? 100_000 : 0,
                     'admin_charge_paid' => $month === 1 ? 8_333 : 0,
                     'other_charge_paid' => 0,
                     'total_paid' => $month === 1 ? 1_000_000 : 0,
                     'status' => $month === 1 ? 'partially_paid' : 'pending',
-                    'is_calculated' => false,
+                    'is_calculated' => true,
                     'version' => 1,
                 ]
             );

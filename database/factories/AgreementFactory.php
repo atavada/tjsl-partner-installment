@@ -10,6 +10,7 @@ use App\Enums\CollectibilityStatus;
 use App\Enums\SignatureSummary;
 use App\Models\Agreement;
 use App\Models\Partner;
+use App\Services\ScheduleGeneratorService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -40,15 +41,19 @@ class AgreementFactory extends Factory
             'batch_year' => $year,
             'business_group' => $this->faker->randomElement(['Kelompok Tani Makmur', 'Sentra Batik Jaya', 'Koperasi Nelayan Sejahtera']),
             'source_row_number' => $this->faker->numberBetween(1, 5000),
+            'tenor_months' => 24,
             'application_date' => "{$year}-01-10",
             'contract_date' => "{$year}-01-15",
             'effective_date' => "{$year}-02-01",
+            'loan_start_date' => "{$year}-01-15",
+            'first_due_date' => "{$year}-02-01",
             'maturity_date' => ((int) $year + 2).'-01-31',
             'principal_amount' => $principal,
             'interest_amount' => $interest,
             'admin_charge_amount' => $admin,
             'other_charge_amount' => 0,
             'total_amount' => $total,
+            'interest_rate_percent' => '6.00',
             'lifecycle_status' => AgreementLifecycleStatus::Draft,
             'legacy_lifecycle_status' => 'Draft',
             'collectibility_status' => CollectibilityStatus::Unknown,
@@ -105,5 +110,12 @@ class AgreementFactory extends Factory
             'signing_status' => AgreementSigningStatus::Signed,
             'signature_summary' => SignatureSummary::Signed,
         ]);
+    }
+
+    public function withGeneratedSchedules(): static
+    {
+        return $this->afterCreating(function (Agreement $agreement): void {
+            app(ScheduleGeneratorService::class)->generateForAgreement($agreement, persist: true);
+        });
     }
 }

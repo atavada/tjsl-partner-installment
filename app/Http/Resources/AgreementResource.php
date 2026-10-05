@@ -8,8 +8,10 @@ use App\Enums\AgreementLifecycleStatus;
 use App\Models\Agreement;
 use App\Models\AgreementDocument;
 use App\Services\BalanceService;
+use App\Services\CollectibilityCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
 
 /**
  * @mixin Agreement
@@ -25,7 +27,12 @@ class AgreementResource extends JsonResource
     {
         /** @var BalanceService $balanceService */
         $balanceService = app(BalanceService::class);
-        $balance = $balanceService->getBalance($this->resource);
+        $asOf = $request->query('as_of') ? Carbon::parse((string) $request->query('as_of')) : null;
+        $balance = $balanceService->getBalance($this->resource, $asOf);
+
+        /** @var CollectibilityCalculationService $collectibilityService */
+        $collectibilityService = app(CollectibilityCalculationService::class);
+        $collectibility = $collectibilityService->calculate($this->resource, $asOf);
 
         $isDraft = $this->lifecycle_status === AgreementLifecycleStatus::Draft;
 
@@ -37,15 +44,19 @@ class AgreementResource extends JsonResource
             'batch_year' => $this->batch_year,
             'business_group' => $this->business_group,
             'source_row_number' => $this->source_row_number,
+            'tenor_months' => $this->tenor_months,
             'application_date' => $this->application_date?->toDateString(),
             'contract_date' => $this->contract_date?->toDateString(),
             'effective_date' => $this->effective_date?->toDateString(),
+            'loan_start_date' => $this->loan_start_date?->toDateString(),
+            'first_due_date' => $this->first_due_date?->toDateString(),
             'maturity_date' => $this->maturity_date?->toDateString(),
             'principal_amount' => $this->principal_amount,
             'interest_amount' => $this->interest_amount,
             'admin_charge_amount' => $this->admin_charge_amount,
             'other_charge_amount' => $this->other_charge_amount,
             'total_amount' => $this->total_amount,
+            'interest_rate_percent' => $this->interest_rate_percent,
             // Three independent status dimensions per PRD §4 invariant 8
             'status_dimensions' => [
                 'lifecycle' => [
@@ -54,9 +65,11 @@ class AgreementResource extends JsonResource
                     'legacy' => $this->legacy_lifecycle_status,
                 ],
                 'collectibility' => [
-                    'status' => $this->collectibility_status?->value,
-                    'label' => $this->collectibility_status?->label(),
+                    'status' => $collectibility['status'],
+                    'label' => $collectibility['label'],
                     'legacy' => $this->legacy_collectibility_status,
+                    'late_months' => $collectibility['late_months'],
+                    'as_of' => $collectibility['as_of'],
                 ],
                 'signing' => [
                     'status' => $this->signing_status?->value,
@@ -68,8 +81,9 @@ class AgreementResource extends JsonResource
             ],
             'lifecycle_status' => $this->lifecycle_status?->value,
             'lifecycle_status_label' => $this->lifecycle_status?->label(),
-            'collectibility_status' => $this->collectibility_status?->value,
-            'collectibility_status_label' => $this->collectibility_status?->label(),
+            'collectibility_status' => $collectibility['status'],
+            'collectibility_status_label' => $collectibility['label'],
+            'collectibility_detail' => $collectibility,
             'signing_status' => $this->signing_status?->value,
             'signing_status_label' => $this->signing_status?->label(),
             'signature_summary' => $this->signature_summary?->value,

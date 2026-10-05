@@ -9,6 +9,8 @@ use App\Enums\AgreementLifecycleStatus;
 use App\Enums\AgreementSigningStatus;
 use App\Enums\CollectibilityStatus;
 use App\Enums\SignatureSummary;
+use App\Services\CollectibilityCalculationService;
+use Carbon\CarbonInterface;
 use Database\Factories\AgreementFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,15 +31,19 @@ class Agreement extends Model
         'batch_year',
         'business_group',
         'source_row_number',
+        'tenor_months',
         'application_date',
         'contract_date',
         'effective_date',
+        'loan_start_date',
+        'first_due_date',
         'maturity_date',
         'principal_amount',
         'interest_amount',
         'admin_charge_amount',
         'other_charge_amount',
         'total_amount',
+        'interest_rate_percent',
         'lifecycle_status',
         'legacy_lifecycle_status',
         'collectibility_status',
@@ -55,15 +61,19 @@ class Agreement extends Model
     protected function casts(): array
     {
         return [
+            'tenor_months' => 'integer',
             'application_date' => 'date',
             'contract_date' => 'date',
             'effective_date' => 'date',
+            'loan_start_date' => 'date',
+            'first_due_date' => 'date',
             'maturity_date' => 'date',
             'principal_amount' => 'integer',
             'interest_amount' => 'integer',
             'admin_charge_amount' => 'integer',
             'other_charge_amount' => 'integer',
             'total_amount' => 'integer',
+            'interest_rate_percent' => 'decimal:2',
             'source_row_number' => 'integer',
             'lifecycle_status' => AgreementLifecycleStatus::class,
             'collectibility_status' => CollectibilityStatus::class,
@@ -170,5 +180,15 @@ class Agreement extends Model
     public function isClosedByRescheduling(): bool
     {
         return $this->lifecycle_status === AgreementLifecycleStatus::ClosedByRescheduling;
+    }
+
+    /**
+     * Calculate dynamic collectibility status and metrics as of a given date.
+     *
+     * @return array<string, mixed>
+     */
+    public function calculateCollectibility(?CarbonInterface $asOf = null): array
+    {
+        return app(CollectibilityCalculationService::class)->calculate($this, $asOf);
     }
 }

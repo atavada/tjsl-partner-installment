@@ -95,6 +95,8 @@ export interface AgreementStatusDimensions {
         status: string | null;
         label: string | null;
         legacy: string | null;
+        late_months?: number;
+        as_of?: string;
     };
     signing: {
         status: string | null;
@@ -113,15 +115,19 @@ export interface AgreementData {
     batch_year: string | null;
     business_group: string | null;
     source_row_number: number | null;
+    tenor_months?: number | null;
     application_date: string | null;
     contract_date: string | null;
     effective_date: string | null;
+    loan_start_date?: string | null;
+    first_due_date?: string | null;
     maturity_date: string | null;
     principal_amount: number;
     interest_amount: number;
     admin_charge_amount: number;
     other_charge_amount: number;
     total_amount: number;
+    interest_rate_percent?: string | number | null;
     status_dimensions: AgreementStatusDimensions;
     lifecycle_status: string;
     lifecycle_status_label: string;

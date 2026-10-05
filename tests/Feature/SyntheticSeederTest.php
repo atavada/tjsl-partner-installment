@@ -215,7 +215,28 @@ describe('Synthetic Database Seeder (TASK-009 / PRD §9 Gate)', function () {
             ->and($abtLot->amount)->toBe(500_000)
             ->and($abtLot->lot_type)->toBe(FundLotType::Abt);
 
-        // 6. No real PII
+        // 6. Schedule generator integer rounding & EDATE integrity (TASK-REM-006)
+        $seededAgreement1 = Agreement::where('agreement_number', '0001/SP-TJSL/2026')->first();
+        expect($seededAgreement1)->not->toBeNull()
+            ->and($seededAgreement1->tenor_months)->toBe(12)
+            ->and($seededAgreement1->first_due_date?->toDateString())->toBe('2026-02-01');
+
+        $seededSchedules = InstallmentSchedule::where('agreement_id', $seededAgreement1->id)
+            ->orderBy('installment_number', 'asc')
+            ->get();
+        expect($seededSchedules)->toHaveCount(12)
+            ->and($seededSchedules->sum('principal_due'))->toBe(20_000_000)
+            ->and($seededSchedules->sum('interest_due'))->toBe(1_200_000)
+            ->and($seededSchedules->sum('admin_charge_due'))->toBe(100_000)
+            ->and($seededSchedules->sum('total_due'))->toBe(21_300_000);
+
+        // Assert Rp4 discrepancy eliminated: 11 installments at 1,666,666 and final at 1,666,674
+        for ($i = 0; $i < 11; $i++) {
+            expect($seededSchedules[$i]->principal_due)->toBe(1_666_666);
+        }
+        expect($seededSchedules[11]->principal_due)->toBe(1_666_674);
+
+        // 7. No real PII
         foreach (User::all() as $user) {
             expect($user->email)->toMatch('/@(example\.test|example\.com)$/');
         }
