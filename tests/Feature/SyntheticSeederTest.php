@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\AgreementLifecycleStatus;
 use App\Enums\AgreementTransitionType;
+use App\Enums\FundLotType;
 use App\Enums\PaymentState;
 use App\Enums\Role;
 use App\Exceptions\CyclicTransitionException;
@@ -12,8 +13,8 @@ use App\Models\AgreementDocument;
 use App\Models\AgreementTransition;
 use App\Models\AuditEvent;
 use App\Models\BankTransaction;
+use App\Models\FundLot;
 use App\Models\InstallmentSchedule;
-use App\Models\Overpayment;
 use App\Models\Partner;
 use App\Models\PartnerAlias;
 use App\Models\PaymentAllocation;
@@ -71,10 +72,10 @@ describe('Synthetic Database Seeder (TASK-009 / PRD §9 Gate)', function () {
         expect(AgreementDocument::count())->toBeGreaterThanOrEqual(2);
         expect(InstallmentSchedule::count())->toBeGreaterThanOrEqual(12);
 
-        // Bank transactions, allocations, overpayments (ABT) exist
+        // Bank transactions, allocations, fund lots (ABT) exist
         expect(BankTransaction::count())->toBeGreaterThanOrEqual(6);
         expect(PaymentAllocation::count())->toBeGreaterThanOrEqual(6);
-        expect(Overpayment::count())->toBeGreaterThanOrEqual(2);
+        expect(FundLot::count())->toBeGreaterThanOrEqual(2);
 
         // Audit events exist with append-only immutability
         expect(AuditEvent::count())->toBeGreaterThanOrEqual(5);
@@ -203,16 +204,16 @@ describe('Synthetic Database Seeder (TASK-009 / PRD §9 Gate)', function () {
         expect($original)->not->toBeNull()
             ->and($original->state)->toBe(PaymentState::Reversed);
 
-        // 5. Overpayments (ABT): partner-linked and non-partner unapplied deposit
-        $partnerOverpayment = Overpayment::whereNotNull('partner_id')->first();
-        expect($partnerOverpayment)->not->toBeNull()
-            ->and($partnerOverpayment->unapplied_amount)->toBe(200_000)
-            ->and($partnerOverpayment->proposed_disposition)->toBe('offset');
+        // 5. Fund lots (ABT): partner-linked identified lot and non-partner ABT deposit per DEC-006
+        $partnerLot = FundLot::whereNotNull('partner_id')->first();
+        expect($partnerLot)->not->toBeNull()
+            ->and($partnerLot->amount)->toBe(200_000)
+            ->and($partnerLot->lot_type)->toBe(FundLotType::IdentifiedUnallocated);
 
-        $nonPartnerOverpayment = Overpayment::whereNull('partner_id')->first();
-        expect($nonPartnerOverpayment)->not->toBeNull()
-            ->and($nonPartnerOverpayment->unapplied_amount)->toBe(500_000)
-            ->and($nonPartnerOverpayment->proposed_disposition)->toBe('refund');
+        $abtLot = FundLot::whereNull('partner_id')->first();
+        expect($abtLot)->not->toBeNull()
+            ->and($abtLot->amount)->toBe(500_000)
+            ->and($abtLot->lot_type)->toBe(FundLotType::Abt);
 
         // 6. No real PII
         foreach (User::all() as $user) {

@@ -96,8 +96,8 @@ class PaymentAllocation extends Model
                         ->where('state', '!=', PaymentState::Reversed->value)
                         ->sum('total_amount');
 
-                    $unapplied = (int) Overpayment::where('bank_transaction_id', $model->bank_transaction_id)
-                        ->sum('unapplied_amount');
+                    $unapplied = (int) FundLot::where('bank_transaction_id', $model->bank_transaction_id)
+                        ->sum('amount');
 
                     if (($otherAllocations + (int) $model->total_amount + $unapplied) > $transaction->amount) {
                         throw new InvalidArgumentException(

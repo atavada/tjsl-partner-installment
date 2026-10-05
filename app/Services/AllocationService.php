@@ -6,12 +6,13 @@ namespace App\Services;
 
 use App\Data\AllocationLine;
 use App\Data\AllocationResult;
+use App\Enums\FundLotType;
 use App\Enums\PaymentState;
 use App\Models\Agreement;
 use App\Models\AllocationInstallmentLine;
 use App\Models\BankTransaction;
+use App\Models\FundLot;
 use App\Models\InstallmentSchedule;
-use App\Models\Overpayment;
 use App\Models\PaymentAllocation;
 use App\Models\User;
 use Carbon\CarbonInterface;
@@ -193,7 +194,7 @@ class AllocationService
                 }
 
                 // If excess exists, update allocation amounts to actually allocated components
-                // and store leftover as Overpayment record (DEC-008 §6, §7, FIMPL-008)
+                // and store leftover as true excess FundLot record (DEC-006, DEC-008 §6, §7, FIMPL-008)
                 if ($excessAmount > 0) {
                     $allocation->update([
                         'principal_amount' => $totalPrincipal,
@@ -204,12 +205,12 @@ class AllocationService
                     ]);
 
                     if ($allocation->bank_transaction_id !== null) {
-                        Overpayment::create([
+                        FundLot::create([
                             'bank_transaction_id' => $allocation->bank_transaction_id,
                             'partner_id' => $agreement->partner_id,
-                            'unapplied_amount' => $excessAmount,
-                            'proposed_disposition' => 'unapplied_deposit',
-                            'disposition_status' => 'unresolved',
+                            'source_agreement_id' => $agreement->id,
+                            'lot_type' => FundLotType::Excess,
+                            'amount' => $excessAmount,
                             'evidence' => $allocation->evidence,
                             'idempotency_key' => (string) Str::uuid(),
                             'version' => 1,
@@ -286,8 +287,8 @@ class AllocationService
             ->where('state', '!=', PaymentState::Reversed->value)
             ->sum('total_amount');
 
-        $unapplied = (int) Overpayment::where('bank_transaction_id', $transaction->id)
-            ->sum('unapplied_amount');
+        $unapplied = (int) FundLot::where('bank_transaction_id', $transaction->id)
+            ->sum('amount');
 
         return max(0, $transaction->amount - $allocated - $unapplied);
     }

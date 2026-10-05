@@ -43,7 +43,7 @@ class PaymentController extends Controller
             ->with([
                 'allocations.agreement',
                 'allocations.approvedBy',
-                'overpayments',
+                'fundLots',
                 'recordedBy',
             ])
             ->orderByDesc('transaction_datetime')
@@ -126,7 +126,7 @@ class PaymentController extends Controller
             'allocations.reversals',
             'allocations.reversalOf',
             'allocations.approvedBy',
-            'overpayments',
+            'fundLots',
             'recordedBy',
         ]);
 

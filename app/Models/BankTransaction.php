@@ -113,10 +113,10 @@ class BankTransaction extends Model
         return $this->hasMany(PaymentAllocation::class);
     }
 
-    /** @return HasMany<Overpayment, $this> */
-    public function overpayments(): HasMany
+    /** @return HasMany<FundLot, $this> */
+    public function fundLots(): HasMany
     {
-        return $this->hasMany(Overpayment::class);
+        return $this->hasMany(FundLot::class);
     }
 
     /** @return BelongsTo<User, $this> */

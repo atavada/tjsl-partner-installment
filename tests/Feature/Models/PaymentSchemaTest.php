@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Enums\FundLotType;
 use App\Enums\PaymentState;
 use App\Exceptions\NotApprovedException;
 use App\Models\Agreement;
 use App\Models\BankTransaction;
-use App\Models\Overpayment;
+use App\Models\FundLot;
 use App\Models\PaymentAllocation;
 use App\Models\ReceivableAdjustment;
 use Illuminate\Database\QueryException;
@@ -223,9 +224,9 @@ describe('PaymentAllocation components and over-allocation constraints (PRD §4 
         ]);
 
         // Unapplied/ABT amount of 400,000
-        Overpayment::factory()->create([
+        FundLot::factory()->create([
             'bank_transaction_id' => $txn->id,
-            'unapplied_amount' => 400_000,
+            'amount' => 400_000,
         ]);
 
         // Allocation of 700,000 exceeds remaining 600,000 capacity
@@ -320,25 +321,26 @@ describe('ReceivableAdjustment signed amounts and DEC-008 guard', function () {
     });
 });
 
-describe('Overpayment ABT schema and DEC-006 guard', function () {
-    it('creates an overpayment record with nullable partner (non-partner deposits)', function () {
-        $overpayment = Overpayment::factory()->withoutPartner()->create([
-            'unapplied_amount' => 350_000,
+describe('FundLot schema and DEC-006 guards', function () {
+    it('creates an ABT fund lot with nullable partner (non-partner deposits)', function () {
+        $lot = FundLot::factory()->abt()->create([
+            'amount' => 350_000,
         ]);
 
-        expect($overpayment->partner_id)->toBeNull();
-        expect($overpayment->unapplied_amount)->toBe(350_000);
-        expect($overpayment->disposition_status)->toBe('unresolved');
+        expect($lot->partner_id)->toBeNull();
+        expect($lot->amount)->toBe(350_000);
+        expect($lot->lot_type)->toBe(FundLotType::Abt);
+        expect($lot->isAbt())->toBeTrue();
     });
 
-    it('blocks disposition execution per DEC-006', function () {
-        $overpayment = Overpayment::factory()->create();
+    it('rejects fund lot deletion per DEC-006 (unmatched ABT stays queued permanently)', function () {
+        $lot = FundLot::factory()->abt()->create();
 
-        expect(fn () => $overpayment->executeDisposition())
-            ->toThrow(NotApprovedException::class, 'ABT / overpayment disposition execution is blocked pending DEC-006 approval.');
+        expect(fn () => $lot->delete())
+            ->toThrow(LogicException::class, 'Fund lots cannot be deleted per DEC-006.');
     });
 
-    it('rejects overpayment that exceeds remaining transaction capacity', function () {
+    it('rejects fund lot that exceeds remaining transaction capacity', function () {
         $txn = BankTransaction::factory()->create([
             'amount' => 1_000_000,
         ]);
@@ -352,11 +354,11 @@ describe('Overpayment ABT schema and DEC-006 guard', function () {
             'total_amount' => 800_000,
         ]);
 
-        // Attempt to create overpayment of 300,000 (total would be 1,100,000 > 1,000,000)
-        expect(fn () => Overpayment::factory()->create([
+        // Attempt to create fund lot of 300,000 (total would be 1,100,000 > 1,000,000)
+        expect(fn () => FundLot::factory()->create([
             'bank_transaction_id' => $txn->id,
-            'unapplied_amount' => 300_000,
-        ]))->toThrow(InvalidArgumentException::class, 'Overpayment exceeds transaction capacity');
+            'amount' => 300_000,
+        ]))->toThrow(InvalidArgumentException::class, 'Fund lot exceeds transaction capacity');
     });
 });
 

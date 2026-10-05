@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\FundLotType;
 use App\Enums\PaymentState;
 use App\Exceptions\DuplicatePaymentException;
 use App\Exceptions\NotApprovedException;
 use App\Models\BankTransaction;
-use App\Models\Overpayment;
+use App\Models\FundLot;
 use App\Models\PaymentAllocation;
 use App\Models\User;
 use Carbon\Carbon;
@@ -35,7 +36,7 @@ class PaymentStagingService
     {
         // 1. Idempotency check: if transaction with exact idempotency key exists, return it
         $idempotencyKey = (string) $data['idempotency_key'];
-        $existing = BankTransaction::with(['allocations.agreement', 'overpayments', 'recordedBy'])
+        $existing = BankTransaction::with(['allocations.agreement', 'fundLots', 'recordedBy'])
             ->where('idempotency_key', $idempotencyKey)
             ->first();
 
@@ -155,22 +156,21 @@ class PaymentStagingService
                 'version' => 1,
             ]);
 
-            // If transaction amount exceeds allocated components, overage becomes unapplied ABT (FR-03)
+            // If transaction amount exceeds allocated components, overage becomes identified-unallocated lot per DEC-006
             $overage = $txnAmount - $allocationTotal;
             if ($overage > 0) {
-                Overpayment::create([
+                FundLot::create([
                     'bank_transaction_id' => $transaction->id,
                     'partner_id' => $data['partner_id'],
-                    'unapplied_amount' => $overage,
-                    'proposed_disposition' => 'unapplied_deposit',
-                    'disposition_status' => 'unresolved',
+                    'lot_type' => FundLotType::IdentifiedUnallocated,
+                    'amount' => $overage,
                     'evidence' => $data['evidence'] ?? null,
                     'idempotency_key' => (string) Str::uuid(),
                     'version' => 1,
                 ]);
             }
 
-            return $transaction->load(['allocations.agreement', 'overpayments', 'recordedBy']);
+            return $transaction->load(['allocations.agreement', 'fundLots', 'recordedBy']);
         });
     }
 

@@ -244,6 +244,8 @@ describe('Over-allocation rejected by DB and service checks (PRD §4 invariant 2
         expect($data['overpayment_amount'])->toBe(200_000);
         expect($data['overpayments'])->toHaveCount(1);
         expect($data['overpayments'][0]['unapplied_amount'])->toBe(200_000);
+        expect($data['fund_lots'])->toHaveCount(1);
+        expect($data['fund_lots'][0]['lot_type'])->toBe('identified_unallocated');
     });
 });
 

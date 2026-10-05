@@ -3,13 +3,14 @@
 declare(strict_types=1);
 
 use App\Data\AllocationResult;
+use App\Enums\FundLotType;
 use App\Enums\PaymentState;
 use App\Enums\Permission;
 use App\Models\Agreement;
 use App\Models\AllocationInstallmentLine;
 use App\Models\BankTransaction;
+use App\Models\FundLot;
 use App\Models\InstallmentSchedule;
-use App\Models\Overpayment;
 use App\Models\PaymentAllocation;
 use App\Models\User;
 use App\Policies\PaymentPolicy;
@@ -228,7 +229,7 @@ describe('AllocationService per DEC-008 §6 (FIMPL-007)', function () {
             ->and($inst2Out['total'])->toBe(434_000);
     });
 
-    it('creates excess Overpayment when payment exceeds all installments per formula-spec §7', function () {
+    it('creates excess FundLot when payment exceeds all installments per formula-spec §7', function () {
         $agreement = Agreement::factory()->active()->create();
 
         $schedule = InstallmentSchedule::factory()->create([
@@ -270,12 +271,13 @@ describe('AllocationService per DEC-008 §6 (FIMPL-007)', function () {
             ->and($allocation->admin_charge_amount)->toBe(10_000)
             ->and($allocation->interest_amount)->toBe(40_000);
 
-        // Verify Overpayment record created for excess
-        $overpayment = Overpayment::where('bank_transaction_id', $txn->id)->first();
-        expect($overpayment)->not->toBeNull()
-            ->and($overpayment->unapplied_amount)->toBe(150_000)
-            ->and($overpayment->partner_id)->toBe($agreement->partner_id)
-            ->and($overpayment->disposition_status)->toBe('unresolved');
+        // Verify true excess FundLot record created for excess per DEC-006 & formula-spec §7
+        $excessLot = FundLot::where('bank_transaction_id', $txn->id)->first();
+        expect($excessLot)->not->toBeNull()
+            ->and($excessLot->amount)->toBe(150_000)
+            ->and($excessLot->partner_id)->toBe($agreement->partner_id)
+            ->and($excessLot->source_agreement_id)->toBe($agreement->id)
+            ->and($excessLot->lot_type)->toBe(FundLotType::Excess);
     });
 
     it('records allocation-to-installment links in allocation_installment_lines', function () {

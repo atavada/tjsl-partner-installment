@@ -23,9 +23,20 @@ class NotApprovedException extends RuntimeException
         return new self('Balance and installment schedule calculation is blocked pending DEC-008 approval.');
     }
 
-    public static function forOverpaymentDisposition(): self
+    /**
+     * DP-8: Excess target partner/agreement choice rule is OPEN per DEC-006.
+     */
+    public static function forExcessTargetChoice(): self
     {
-        return new self('ABT / overpayment disposition execution is blocked pending DEC-006 approval.');
+        return new self('Excess target partner/agreement choice rule is blocked pending DEC-006 (DP-8) approval.');
+    }
+
+    /**
+     * Non-partner depositor workflow is OPEN per DEC-006.
+     */
+    public static function forNonPartnerDepositor(): self
+    {
+        return new self('Non-partner depositor workflow is blocked pending DEC-006 approval.');
     }
 
     public static function forReceivableAdjustmentPosting(): self

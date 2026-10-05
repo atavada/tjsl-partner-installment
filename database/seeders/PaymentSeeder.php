@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Enums\FundLotType;
 use App\Enums\PaymentState;
 use App\Models\Agreement;
 use App\Models\BankTransaction;
-use App\Models\Overpayment;
+use App\Models\FundLot;
 use App\Models\Partner;
 use App\Models\PaymentAllocation;
 use App\Models\User;
@@ -304,15 +305,15 @@ class PaymentSeeder extends Seeder
             'version' => 1,
         ]);
 
-        Overpayment::create([
+        FundLot::create([
             'bank_transaction_id' => $overpayTxn->id,
             'partner_id' => $partner1->id,
-            'unapplied_amount' => 200_000, // 1_200_000 - 1_000_000
-            'proposed_disposition' => 'offset',
-            'disposition_status' => 'unresolved',
+            'source_agreement_id' => $activeAgreement1->id,
+            'lot_type' => FundLotType::IdentifiedUnallocated,
+            'amount' => 200_000, // 1_200_000 - 1_000_000
             'evidence' => 'evidence_abt_notice_0005.pdf',
             'idempotency_key' => (string) Str::uuid(),
-            'reason' => 'Kelebihan setoran angsuran (ABT) periode Maret 2026',
+            'reason' => 'Kelebihan setoran angsuran periode Maret 2026',
             'version' => 1,
         ]);
 
@@ -346,15 +347,14 @@ class PaymentSeeder extends Seeder
             'version' => 1,
         ]);
 
-        Overpayment::create([
+        FundLot::create([
             'bank_transaction_id' => $unmatchedTxn->id,
-            'partner_id' => null, // Non-partner unapplied deposit per PRD §4 / FR-13
-            'unapplied_amount' => 500_000,
-            'proposed_disposition' => 'refund',
-            'disposition_status' => 'unresolved',
+            'partner_id' => null, // Non-partner unapplied deposit per DEC-006 / PRD §4 / FR-13
+            'lot_type' => FundLotType::Abt,
+            'amount' => 500_000,
             'evidence' => null,
             'idempotency_key' => (string) Str::uuid(),
-            'reason' => 'Setoran bank tanpa identifikasi mitra binaan (ABT non-mitra antrean review)',
+            'reason' => 'Setoran bank tanpa identifikasi mitra binaan (ABT)',
             'version' => 1,
         ]);
     }

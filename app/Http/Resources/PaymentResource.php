@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\BankTransaction;
-use App\Models\Overpayment;
+use App\Models\FundLot;
 use App\Models\PaymentAllocation;
 use App\Services\MaskingService;
 use Illuminate\Http\Request;
@@ -31,9 +31,9 @@ class PaymentResource extends JsonResource
             ? $maskingService->maskVaNumber($this->payer_va)
             : null;
 
-        $overpaymentsTotal = $this->relationLoaded('overpayments')
-            ? (int) $this->overpayments->sum('unapplied_amount')
-            : (int) Overpayment::where('bank_transaction_id', $this->id)->sum('unapplied_amount');
+        $fundLotsTotal = $this->relationLoaded('fundLots')
+            ? (int) $this->fundLots->sum('amount')
+            : (int) FundLot::where('bank_transaction_id', $this->id)->sum('amount');
 
         return [
             'id' => $this->id,
@@ -90,17 +90,28 @@ class PaymentResource extends JsonResource
                     'created_at' => $alloc->created_at?->toIso8601String(),
                 ])->values()->all()
                 : [],
-            'overpayments' => $this->relationLoaded('overpayments')
-                ? $this->overpayments->map(fn (Overpayment $op) => [
-                    'id' => $op->id,
-                    'partner_id' => $op->partner_id,
-                    'unapplied_amount' => $op->unapplied_amount,
-                    'proposed_disposition' => $op->proposed_disposition,
-                    'disposition_status' => $op->disposition_status,
-                    'created_at' => $op->created_at?->toIso8601String(),
+            'fund_lots' => $this->relationLoaded('fundLots')
+                ? $this->fundLots->map(fn (FundLot $lot) => [
+                    'id' => $lot->id,
+                    'partner_id' => $lot->partner_id,
+                    'lot_type' => $lot->lot_type?->value,
+                    'lot_type_label' => $lot->lot_type?->label(),
+                    'amount' => $lot->amount,
+                    'evidence' => $lot->evidence,
+                    'created_at' => $lot->created_at?->toIso8601String(),
                 ])->values()->all()
                 : [],
-            'overpayment_amount' => $overpaymentsTotal,
+            'fund_lot_amount' => $fundLotsTotal,
+            'overpayments' => $this->relationLoaded('fundLots')
+                ? $this->fundLots->map(fn (FundLot $lot) => [
+                    'id' => $lot->id,
+                    'partner_id' => $lot->partner_id,
+                    'unapplied_amount' => $lot->amount,
+                    'lot_type' => $lot->lot_type?->value,
+                    'created_at' => $lot->created_at?->toIso8601String(),
+                ])->values()->all()
+                : [],
+            'overpayment_amount' => $fundLotsTotal,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

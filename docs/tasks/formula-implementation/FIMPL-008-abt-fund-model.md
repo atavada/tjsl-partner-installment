@@ -101,26 +101,26 @@
 
 | Date | Task ID | Label | Summary | Decision ref |
 |------|---------|-------|---------|-------------|
-| TBD | FIMPL-008 | implemented | ABT four-concept fund model: ABT ≠ overpayment per DEC-006 | DEC-006 |
+| 2026-10-04 | FIMPL-008 | implemented | ABT four-concept fund model: ABT ≠ overpayment per DEC-006 | DEC-006 |
 
 Previous entry to update: TASK-006 row mentioning DEC-006 overpayment stub.
 
 ## Acceptance criteria
 
-- [ ] ABT lots stored without partner/agreement (owner unknown)
-- [ ] ABT lots do NOT reduce any balance
-- [ ] Identification records actor, time, evidence
-- [ ] Only allocated lots affect `remaining()`
-- [ ] Excess lots created from allocation leftover
-- [ ] No refund, no delete on any fund lot
-- [ ] Transfer records for cross-partner reallocation (atomic)
-- [ ] DP-8 (target choice rule) stubbed — still OPEN
-- [ ] Non-partner depositor workflow stubbed — still OPEN
-- [ ] `executeDisposition()` and `forOverpaymentDisposition()` removed
-- [ ] Docblocks cite `DEC-006`, `Excess Amount v1`
-- [ ] Pest tests assert all four concepts
-- [ ] Change log updated
+- [x] ABT lots stored without partner/agreement (owner unknown)
+- [x] ABT lots do NOT reduce any balance
+- [x] Identification records actor, time, evidence
+- [x] Only allocated lots affect `remaining()`
+- [x] Excess lots created from allocation leftover
+- [x] No refund, no delete on any fund lot
+- [x] Transfer records for cross-partner reallocation (atomic)
+- [x] DP-8 (target choice rule) stubbed — still OPEN
+- [x] Non-partner depositor workflow stubbed — still OPEN
+- [x] `executeDisposition()` and `forOverpaymentDisposition()` removed
+- [x] Docblocks cite `DEC-006`, `Excess Amount v1`
+- [x] Pest tests assert all four concepts
+- [x] Change log updated
 
 ## Status
 
-`pending`
+`implemented`
