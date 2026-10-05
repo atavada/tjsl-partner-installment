@@ -20,6 +20,9 @@ enum Permission: string
     case PartnerCreate = 'partner.create';
     case PartnerUpdate = 'partner.update';
     case AgreementView = 'agreement.view';
+    case AgreementCreate = 'agreement.create';
+    case AgreementRestructure = 'agreement.restructure';
+    case DocumentUpload = 'document.upload';
     case PaymentStage = 'payment.stage';
     case PaymentPost = 'payment.post';
     case MatchPropose = 'match.propose';

@@ -129,11 +129,6 @@ class User extends Authenticatable
         $permEnum = $permission instanceof Permission ? $permission : Permission::tryFrom($permission);
         $permValue = $permission instanceof Permission ? $permission->value : $permission;
 
-        // DEC-004: Viewer role (Auditor) strictly denied sensitive data
-        if ($this->isViewer() && $permEnum !== null && $permEnum->isSensitive()) {
-            return false;
-        }
-
         if (! empty($this->grantedPermissions[$permValue])) {
             return true;
         }
@@ -142,6 +137,11 @@ class User extends Authenticatable
 
         if (! empty($persisted[$permValue])) {
             return true;
+        }
+
+        // DEC-004: Viewer role (Auditor) strictly denied sensitive data by default
+        if ($this->isViewer() && $permEnum !== null && $permEnum->isSensitive()) {
+            return false;
         }
 
         // DEC-004: Non-viewer roles granted sensitive data access by default

@@ -28,7 +28,8 @@ class AgreementDocumentService
         string $mimeType,
         string $documentType = 'contract',
         ?string $notes = null,
-        ?User $uploader = null
+        ?User $uploader = null,
+        ?string $transitionId = null,
     ): AgreementDocument {
         $content = $file instanceof UploadedFile ? $file->get() : $file;
         $checksum = hash('sha256', $content);
@@ -37,15 +38,21 @@ class AgreementDocumentService
         $storagePath = sprintf('agreements/%s/%s_%s', $agreement->id, (string) Str::uuid(), $originalFileName);
         Storage::disk(self::DISK)->put($storagePath, $content);
 
+        $currentVersion = (int) (AgreementDocument::query()
+            ->where('agreement_id', $agreement->id)
+            ->where('document_type', $documentType)
+            ->max('document_version') ?? 0);
+
         return AgreementDocument::create([
             'agreement_id' => $agreement->id,
+            'transition_id' => $transitionId,
             'file_path' => $storagePath,
             'file_name' => $originalFileName,
             'mime_type' => $mimeType,
             'file_size_bytes' => $fileSize,
             'checksum_sha256' => $checksum,
             'document_type' => $documentType,
-            'document_version' => 1,
+            'document_version' => $currentVersion + 1,
             'uploaded_by_id' => $uploader?->id,
             'signing_status' => AgreementSigningStatus::NotPrepared,
             'signature_summary' => SignatureSummary::Unknown,
@@ -72,10 +79,10 @@ class AgreementDocumentService
     /**
      * Retrieve document content with audit logging (PRD §4, FR-06).
      */
-    public function download(AgreementDocument $document, User $actor): string
+    public function download(AgreementDocument $document, ?User $actor = null, string $action = 'document_downloaded'): string
     {
         if (app()->bound(AuditService::class)) {
-            app(AuditService::class)->logDocumentAccess($document, $actor, 'download');
+            app(AuditService::class)->logDocumentAccess($document, $actor, $action);
         }
 
         return (string) Storage::disk(self::DISK)->get($document->file_path);

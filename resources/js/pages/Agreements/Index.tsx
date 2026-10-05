@@ -7,7 +7,7 @@ import { BreadcrumbItem } from '@/types';
 import { AgreementData } from '@/types/agreement';
 import { PartnerData } from '@/types/partner';
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Clock, FileText, Info, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, Info, Plus, ShieldAlert } from 'lucide-react';
 
 interface IndexProps {
     partner: PartnerData;
@@ -57,11 +57,18 @@ export default function Index({ partner, agreements }: IndexProps) {
                         </p>
                     </div>
 
-                    <Button variant="outline" asChild>
-                        <Link href={`/partners/${partner.id}`} className="inline-flex items-center gap-1.5">
-                            <ArrowLeft className="h-4 w-4" /> Kembali ke Detail Mitra
-                        </Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button asChild>
+                            <Link href={`/partners/${partner.id}/agreements/create`} className="inline-flex items-center gap-1.5">
+                                <Plus className="h-4 w-4" /> Buat Perjanjian Baru
+                            </Link>
+                        </Button>
+                        <Button variant="outline" asChild>
+                            <Link href={`/partners/${partner.id}`} className="inline-flex items-center gap-1.5">
+                                <ArrowLeft className="h-4 w-4" /> Kembali ke Detail Mitra
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Status overview cards */}

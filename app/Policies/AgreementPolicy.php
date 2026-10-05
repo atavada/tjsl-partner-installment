@@ -22,7 +22,26 @@ class AgreementPolicy
 
     public function create(User $user): bool
     {
-        return false;
+        return $user->isOperator() || $user->hasPermission(Permission::AgreementCreate);
+    }
+
+    public function restructure(User $user, Agreement $agreement): bool
+    {
+        if ($agreement->isClosedByRescheduling() || $agreement->isPaidOff()) {
+            return false;
+        }
+
+        return $user->isOperator() || $user->hasPermission(Permission::AgreementRestructure);
+    }
+
+    public function uploadDocument(User $user, Agreement $agreement): bool
+    {
+        return $user->isOperator() || $user->hasPermission(Permission::DocumentUpload);
+    }
+
+    public function downloadDocument(User $user, Agreement $agreement): bool
+    {
+        return $user->hasPermission(Permission::DocumentDownload);
     }
 
     public function update(User $user, Agreement $agreement): bool

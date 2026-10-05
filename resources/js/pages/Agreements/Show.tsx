@@ -1,13 +1,34 @@
 import { formatCurrency, getCollectibilityBadgeVariant, getLifecycleBadgeVariant, getSigningBadgeVariant } from '@/components/AgreementTimeline';
+import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { AgreementData } from '@/types/agreement';
 import { PartnerData } from '@/types/partner';
-import { Head, Link } from '@inertiajs/react';
-import { AlertCircle, ArrowLeft, Calendar, Coins, FileCheck2, FileText, GitBranch, Info, Receipt, ShieldAlert } from 'lucide-react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import {
+    AlertCircle,
+    ArrowLeft,
+    Calendar,
+    Check,
+    Coins,
+    Download,
+    FileCheck2,
+    FileText,
+    GitBranch,
+    Info,
+    Link as LinkIcon,
+    Receipt,
+    RefreshCw,
+    ShieldAlert,
+    Upload,
+} from 'lucide-react';
+import { FormEventHandler, useState } from 'react';
 
 interface ShowProps {
     partner: PartnerData;
@@ -15,6 +36,53 @@ interface ShowProps {
 }
 
 export default function Show({ partner, agreement }: ShowProps) {
+    const [uploadOpen, setUploadOpen] = useState(false);
+    const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
+    const [signedUrlLoading, setSignedUrlLoading] = useState<string | null>(null);
+
+    const {
+        data: uploadData,
+        setData: setUploadData,
+        post: postUpload,
+        processing: uploading,
+        errors: uploadErrors,
+        reset: resetUpload,
+    } = useForm({
+        file: null as File | null,
+        document_type: 'contract',
+        notes: '',
+    });
+
+    const handleUploadSubmit: FormEventHandler = (e) => {
+        e.preventDefault();
+        postUpload(`/agreements/${agreement.id}/documents`, {
+            forceFormData: true,
+            onSuccess: () => {
+                setUploadOpen(false);
+                resetUpload();
+            },
+        });
+    };
+
+    const handleCopySignedUrl = async (docId: string) => {
+        setSignedUrlLoading(docId);
+        try {
+            const res = await fetch(`/agreements/${agreement.id}/documents/${docId}/signed-url`);
+            if (res.ok) {
+                const json = await res.json();
+                if (json.signed_url) {
+                    await navigator.clipboard.writeText(json.signed_url);
+                    setCopiedDocId(docId);
+                    setTimeout(() => setCopiedDocId(null), 3000);
+                }
+            }
+        } catch {
+            // clipboard or fetch fallback
+        } finally {
+            setSignedUrlLoading(null);
+        }
+    };
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Dashboard',
@@ -64,7 +132,17 @@ export default function Show({ partner, agreement }: ShowProps) {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {!agreement.is_closed_by_rescheduling && !agreement.is_paid_off && !isDraft && (
+                            <Button variant="outline" asChild>
+                                <Link
+                                    href={`/partners/${partner.id}/agreements/${agreement.id}/restructure`}
+                                    className="inline-flex items-center gap-1.5"
+                                >
+                                    <RefreshCw className="h-4 w-4" /> Restrukturisasi
+                                </Link>
+                            </Button>
+                        )}
                         <Button variant="outline" asChild>
                             <Link href={`/partners/${partner.id}/agreements/${agreement.id}/payments`} className="inline-flex items-center gap-1.5">
                                 <Receipt className="h-4 w-4" /> Pembayaran
@@ -413,10 +491,86 @@ export default function Show({ partner, agreement }: ShowProps) {
                 {/* Documents List */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <FileText className="text-primary h-4 w-4" /> Dokumen & Lampiran Perjanjian ({agreement.documents?.length ?? 0})
-                        </CardTitle>
-                        <CardDescription>Dokumen kontrak PDF versi tersimpan per DEC-003 dan DEC-004.</CardDescription>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <FileText className="text-primary h-4 w-4" /> Dokumen & Lampiran Perjanjian ({agreement.documents?.length ?? 0})
+                                </CardTitle>
+                                <CardDescription>Dokumen kontrak PDF versi tersimpan per DEC-003 dan DEC-004.</CardDescription>
+                            </div>
+
+                            <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+                                <DialogTrigger asChild>
+                                    <Button size="sm" className="gap-1.5">
+                                        <Upload className="h-4 w-4" /> Unggah Dokumen
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[480px]">
+                                    <form onSubmit={handleUploadSubmit}>
+                                        <DialogHeader>
+                                            <DialogTitle>Unggah Dokumen Perjanjian</DialogTitle>
+                                            <DialogDescription>
+                                                Pilih berkas dokumen digital (PDF maksimal 10MB) untuk disimpan pada penyimpanan privat terenkripsi.
+                                            </DialogDescription>
+                                        </DialogHeader>
+
+                                        <div className="grid gap-4 py-4">
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="upload_file">
+                                                    Berkas PDF <span className="text-destructive">*</span>
+                                                </Label>
+                                                <Input
+                                                    id="upload_file"
+                                                    type="file"
+                                                    accept=".pdf,application/pdf"
+                                                    onChange={(e) => setUploadData('file', e.target.files?.[0] ?? null)}
+                                                    required
+                                                />
+                                                <InputError message={uploadErrors.file} />
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="document_type">Jenis Dokumen</Label>
+                                                <select
+                                                    id="document_type"
+                                                    value={uploadData.document_type}
+                                                    onChange={(e) => setUploadData('document_type', e.target.value)}
+                                                    className="border-input bg-background text-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-hidden"
+                                                >
+                                                    <option value="contract">Surat Perjanjian (Contract)</option>
+                                                    <option value="addendum">Addendum Perubahan</option>
+                                                    <option value="collateral">Dokumen Jaminan / Agunan</option>
+                                                    <option value="id_card">KTP / Identitas Pengurus</option>
+                                                    <option value="other">Lampiran Lainnya</option>
+                                                </select>
+                                                <InputError message={uploadErrors.document_type} />
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="upload_notes">Catatan Berkas (Opsional)</Label>
+                                                <Input
+                                                    id="upload_notes"
+                                                    type="text"
+                                                    placeholder="Contoh: Dokumen asli basah cap basah"
+                                                    value={uploadData.notes}
+                                                    onChange={(e) => setUploadData('notes', e.target.value)}
+                                                />
+                                                <InputError message={uploadErrors.notes} />
+                                            </div>
+                                        </div>
+
+                                        <DialogFooter>
+                                            <Button type="button" variant="outline" onClick={() => setUploadOpen(false)}>
+                                                Batal
+                                            </Button>
+                                            <Button type="submit" disabled={uploading}>
+                                                {uploading ? 'Mengunggah...' : 'Unggah Sekarang'}
+                                            </Button>
+                                        </DialogFooter>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         {!agreement.documents || agreement.documents.length === 0 ? (
@@ -437,10 +591,36 @@ export default function Show({ partner, agreement }: ShowProps) {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2">
                                             {doc.signing_status && (
                                                 <Badge variant={getSigningBadgeVariant(doc.signing_status)}>{doc.signing_status_label}</Badge>
                                             )}
+                                            <Button variant="outline" size="sm" asChild>
+                                                <a
+                                                    href={`/agreements/${agreement.id}/documents/${doc.id}/download`}
+                                                    className="inline-flex items-center gap-1 text-xs"
+                                                >
+                                                    <Download className="h-3.5 w-3.5" /> Unduh
+                                                </a>
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleCopySignedUrl(doc.id)}
+                                                disabled={signedUrlLoading === doc.id}
+                                                className="inline-flex items-center gap-1 text-xs"
+                                                title="Salin tautan sementara (berlaku 30 menit)"
+                                            >
+                                                {copiedDocId === doc.id ? (
+                                                    <>
+                                                        <Check className="h-3.5 w-3.5 text-green-600" /> Tersalin
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <LinkIcon className="h-3.5 w-3.5" /> Tautan Sementara
+                                                    </>
+                                                )}
+                                            </Button>
                                         </div>
                                     </div>
                                 ))}

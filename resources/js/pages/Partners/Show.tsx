@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { PartnerData } from '@/types/partner';
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, Building2, CreditCard, FileText, Phone, ShieldCheck, User } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Building2, CreditCard, FileText, Phone, Plus, ShieldCheck, User } from 'lucide-react';
 
 interface ShowProps {
     partner: PartnerData;
@@ -205,11 +205,18 @@ export default function Show({ partner }: ShowProps) {
                                 </CardTitle>
                                 <CardDescription>Mitra ini terdaftar pada {partner.agreements_count} nomor perjanjian.</CardDescription>
                             </div>
-                            <Button size="sm" asChild>
-                                <Link href={`/partners/${partner.id}/agreements`} className="inline-flex items-center gap-1.5">
-                                    Lihat Riwayat Perjanjian <ArrowRight className="h-3.5 w-3.5" />
-                                </Link>
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button size="sm" variant="outline" asChild>
+                                    <Link href={`/partners/${partner.id}/agreements/create`} className="inline-flex items-center gap-1.5">
+                                        <Plus className="h-3.5 w-3.5" /> Buat Perjanjian
+                                    </Link>
+                                </Button>
+                                <Button size="sm" asChild>
+                                    <Link href={`/partners/${partner.id}/agreements`} className="inline-flex items-center gap-1.5">
+                                        Lihat Riwayat Perjanjian <ArrowRight className="h-3.5 w-3.5" />
+                                    </Link>
+                                </Button>
+                            </div>
                         </div>
                     </CardHeader>
                     <CardContent>
