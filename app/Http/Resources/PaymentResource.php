@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Enums\Permission;
 use App\Models\BankTransaction;
 use App\Models\FundLot;
 use App\Models\PaymentAllocation;
@@ -27,8 +28,10 @@ class PaymentResource extends JsonResource
         $maskingService = app(MaskingService::class);
         $user = $request->user();
 
-        $maskedPayerVa = $this->payer_va !== null
-            ? $maskingService->maskVaNumber($this->payer_va)
+        $canRevealVa = $user !== null && $user->can(Permission::VaReveal->value);
+
+        $payerVa = $this->payer_va !== null
+            ? ($canRevealVa ? $this->payer_va : $maskingService->maskVaNumber($this->payer_va))
             : null;
 
         $fundLotsTotal = $this->relationLoaded('fundLots')
@@ -44,8 +47,7 @@ class PaymentResource extends JsonResource
             'timezone' => $this->timezone,
             'amount' => $this->amount,
             'payer_name' => $this->payer_name,
-            'payer_va' => $maskedPayerVa,
-            'payer_va_raw' => $this->payer_va,
+            'payer_va' => $payerVa,
             'source' => $this->source,
             'source_row_identifier' => $this->source_row_identifier,
             'fingerprint' => $this->fingerprint,

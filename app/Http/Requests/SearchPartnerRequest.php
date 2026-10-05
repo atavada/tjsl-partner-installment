@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Enums\Permission;
 use App\Models\Partner;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -16,7 +17,16 @@ class SearchPartnerRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can('viewAny', Partner::class) ?? false;
+        $user = $this->user();
+        if ($user === null || ! $user->can('viewAny', Partner::class)) {
+            return false;
+        }
+
+        if ($this->input('type') === 'va' && ! $user->can(Permission::VaReveal->value)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

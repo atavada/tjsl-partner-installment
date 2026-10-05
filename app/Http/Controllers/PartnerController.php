@@ -27,7 +27,7 @@ class PartnerController extends Controller
         $type = $request->validated('type');
         $perPage = (int) ($request->validated('per_page') ?? 15);
 
-        $paginator = $searchService->search($query, $type, $perPage)->withQueryString();
+        $paginator = $searchService->search($query, $type, $perPage, $request->user())->withQueryString();
 
         if ($request->wantsJson()) {
             return PartnerResource::collection($paginator);

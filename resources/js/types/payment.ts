@@ -42,7 +42,6 @@ export interface PaymentData {
     amount: number;
     payer_name: string | null;
     payer_va: string | null;
-    payer_va_raw: string | null;
     source: string | null;
     source_row_identifier: string | null;
     fingerprint: string | null;

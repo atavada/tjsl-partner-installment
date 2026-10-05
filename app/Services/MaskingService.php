@@ -70,6 +70,11 @@ class MaskingService
         return substr($vaNumber, 0, 4).str_repeat('*', $length - 8).substr($vaNumber, -4);
     }
 
+    public function maskVa(?string $vaNumber): ?string
+    {
+        return $this->maskVaNumber($vaNumber);
+    }
+
     /**
      * Mask sensitive partner fields based on viewer role (DEC-004).
      * Non-viewer roles see fields unmasked; Viewer (Auditor) or guest sees masked fields.

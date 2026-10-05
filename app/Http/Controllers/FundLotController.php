@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\FundLotType;
 use App\Enums\PaymentState;
+use App\Enums\Permission;
 use App\Http\Requests\IdentifyAbtLotRequest;
 use App\Http\Requests\StoreAbtLotRequest;
 use App\Http\Resources\FundLotResource;
@@ -42,18 +43,24 @@ class FundLotController extends Controller
 
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
-            $query->where(function ($q) use ($search): void {
-                $q->whereHas('partner', function ($partnerQuery) use ($search): void {
-                    $partnerQuery->where('name', 'like', "%{$search}%")
-                        ->orWhere('partner_no_id', 'like', "%{$search}%");
+            $escapedSearch = addcslashes($search, '%_\\');
+            $canRevealVa = (bool) $request->user()?->can(Permission::VaReveal->value);
+
+            $query->where(function ($q) use ($escapedSearch, $canRevealVa): void {
+                $q->whereHas('partner', function ($partnerQuery) use ($escapedSearch): void {
+                    $partnerQuery->where('name', 'like', "%{$escapedSearch}%")
+                        ->orWhere('partner_no_id', 'like', "%{$escapedSearch}%");
                 })
-                    ->orWhereHas('bankTransaction', function ($txnQuery) use ($search): void {
-                        $txnQuery->where('reference', 'like', "%{$search}%")
-                            ->orWhere('payer_name', 'like', "%{$search}%")
-                            ->orWhere('payer_va', 'like', "%{$search}%");
+                    ->orWhereHas('bankTransaction', function ($txnQuery) use ($escapedSearch, $canRevealVa): void {
+                        $txnQuery->where('reference', 'like', "%{$escapedSearch}%")
+                            ->orWhere('payer_name', 'like', "%{$escapedSearch}%");
+
+                        if ($canRevealVa) {
+                            $txnQuery->orWhere('payer_va', 'like', "%{$escapedSearch}%");
+                        }
                     })
-                    ->orWhere('evidence', 'like', "%{$search}%")
-                    ->orWhere('reason', 'like', "%{$search}%");
+                    ->orWhere('evidence', 'like', "%{$escapedSearch}%")
+                    ->orWhere('reason', 'like', "%{$escapedSearch}%");
             });
         }
 

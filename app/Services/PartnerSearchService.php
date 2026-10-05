@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\Permission;
 use App\Models\Agreement;
 use App\Models\Partner;
 use App\Models\PartnerAlias;
+use App\Models\User;
 use App\Models\VirtualAccount;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,7 +18,7 @@ class PartnerSearchService
     /**
      * Search partners across NO ID, alias/name, agreement number, or VA.
      */
-    public function search(?string $query = null, ?string $type = null, int $perPage = 15): LengthAwarePaginator
+    public function search(?string $query = null, ?string $type = null, int $perPage = 15, ?User $user = null): LengthAwarePaginator
     {
         $builder = Partner::query()
             ->with(['aliases', 'virtualAccounts'])
@@ -32,7 +34,7 @@ class PartnerSearchService
             'no_id' => $this->applyNoIdFilter($builder, $trimmedQuery),
             'name' => $this->applyNameFilter($builder, $trimmedQuery),
             'agreement' => $this->applyAgreementFilter($builder, $trimmedQuery),
-            'va' => $this->applyVaFilter($builder, $trimmedQuery),
+            'va' => $this->applyVaFilter($builder, $trimmedQuery, $user),
             default => $builder->whereRaw('1 = 0'),
         };
 
@@ -65,10 +67,13 @@ class PartnerSearchService
             return $builder->whereRaw('1 = 0');
         }
 
-        return $builder->where(function (Builder $subQuery) use ($normalized, $query) {
-            $subQuery->whereHas('aliases', function (Builder $aliasQuery) use ($normalized) {
-                $aliasQuery->where('name_normalized', 'like', "%{$normalized}%");
-            })->orWhere('name', 'like', "%{$query}%");
+        $escapedNormalized = addcslashes($normalized, '%_\\');
+        $escapedQuery = addcslashes($query, '%_\\');
+
+        return $builder->where(function (Builder $subQuery) use ($escapedNormalized, $escapedQuery) {
+            $subQuery->whereHas('aliases', function (Builder $aliasQuery) use ($escapedNormalized) {
+                $aliasQuery->where('name_normalized', 'like', "%{$escapedNormalized}%");
+            })->orWhere('name', 'like', "%{$escapedQuery}%");
         });
     }
 
@@ -92,8 +97,14 @@ class PartnerSearchService
     /**
      * Exact match on VA number preserving leading zeros.
      */
-    private function applyVaFilter(Builder $builder, string $query): Builder
+    private function applyVaFilter(Builder $builder, string $query, ?User $user = null): Builder
     {
+        $actor = $user ?? auth()->user();
+
+        if ($actor === null || ! $actor->can(Permission::VaReveal->value)) {
+            return $builder->whereRaw('1 = 0');
+        }
+
         $normalized = VirtualAccount::normalizeVaNumber($query);
 
         if ($normalized === '') {

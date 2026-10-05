@@ -196,6 +196,48 @@ describe('Virtual Account Search', function () {
             ->where('partners.data.0.id', $partner->id)
         );
     });
+
+    it('forbids users without va.reveal permission from searching by va', function () {
+        $auditor = User::factory()->auditor()->create();
+        $auditor->grantPermission(Permission::PartnerView);
+
+        $response = $this->actingAs($auditor)
+            ->get('/partners?query=0000000012345678&type=va');
+
+        $response->assertForbidden();
+    });
+});
+
+describe('Wildcard Escaping in Partner Search', function () {
+    it('escapes SQL LIKE wildcards in name search to treat percent and underscore as literals', function () {
+        $partnerWildcard = Partner::factory()->create([
+            'name' => 'PT 100% Maju',
+        ]);
+        PartnerAlias::factory()->create([
+            'partner_id' => $partnerWildcard->id,
+            'name_raw' => 'PT 100% Maju',
+            'name_normalized' => PartnerAlias::normalizeName('PT 100% Maju'),
+        ]);
+
+        $partnerNormal = Partner::factory()->create([
+            'name' => 'PT 1000 Maju',
+        ]);
+        PartnerAlias::factory()->create([
+            'partner_id' => $partnerNormal->id,
+            'name_raw' => 'PT 1000 Maju',
+            'name_normalized' => PartnerAlias::normalizeName('PT 1000 Maju'),
+        ]);
+
+        $response = $this->actingAs($this->authorizedUser)
+            ->get('/partners?query=100%25&type=name');
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Partners/Index')
+            ->has('partners.data', 1)
+            ->where('partners.data.0.id', $partnerWildcard->id)
+        );
+    });
 });
 
 describe('Server-Side Pagination & Page Size', function () {
