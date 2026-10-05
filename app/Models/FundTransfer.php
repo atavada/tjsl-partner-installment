@@ -116,6 +116,17 @@ class FundTransfer extends Model
                 );
             }
 
+            // Deduct lot amount & transition status when fully exhausted per TASK-REM-007
+            $lockedLot->amount = (int) $lockedLot->amount - $amount;
+            if ($lockedLot->amount === 0) {
+                $lockedLot->lot_type = FundLotType::Allocated;
+            }
+            $lockedLot->version = (int) $lockedLot->version + 1;
+            $lockedLot->save();
+
+            $sourceLot->amount = $lockedLot->amount;
+            $sourceLot->lot_type = $lockedLot->lot_type;
+
             return self::create([
                 'source_lot_id' => $lockedLot->id,
                 'target_partner_id' => $targetPartner->id,

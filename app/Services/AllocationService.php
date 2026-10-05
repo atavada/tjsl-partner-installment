@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Data\AllocationLine;
 use App\Data\AllocationResult;
+use App\Enums\AgreementLifecycleStatus;
 use App\Enums\FundLotType;
 use App\Enums\PaymentState;
 use App\Models\Agreement;
@@ -51,6 +52,12 @@ class AllocationService
         'other_charge',
         'principal',
     ];
+
+    public function __construct(
+        protected ?BalanceService $balanceService = null
+    ) {
+        $this->balanceService ??= app(BalanceService::class);
+    }
 
     /**
      * Allocate payment amount across agreement installment schedules.
@@ -176,7 +183,8 @@ class AllocationService
                 $totalAdmin,
                 $totalOther,
                 $totalAllocated,
-                $excessAmount
+                $excessAmount,
+                $evaluationDate
             ): void {
                 // Remove any pre-existing lines for this allocation (idempotency)
                 AllocationInstallmentLine::where('payment_allocation_id', $allocation->id)->delete();
@@ -206,7 +214,7 @@ class AllocationService
                 }
 
                 // If excess exists, update allocation amounts to actually allocated components
-                // and store leftover as true excess FundLot record (DEC-006, DEC-008 §6, §7, FIMPL-008)
+                // and store leftover per DP-7 & DEC-006 (partner-level excess scope).
                 if ($excessAmount > 0) {
                     $allocation->update([
                         'principal_amount' => $totalPrincipal,
@@ -217,16 +225,72 @@ class AllocationService
                     ]);
 
                     if ($allocation->bank_transaction_id !== null) {
-                        FundLot::create([
-                            'bank_transaction_id' => $allocation->bank_transaction_id,
-                            'partner_id' => $agreement->partner_id,
-                            'source_agreement_id' => $agreement->id,
-                            'lot_type' => FundLotType::Excess,
-                            'amount' => $excessAmount,
-                            'evidence' => $allocation->evidence,
-                            'idempotency_key' => (string) Str::uuid(),
-                            'version' => 1,
-                        ]);
+                        $otherAgreements = Agreement::query()
+                            ->where('partner_id', $agreement->partner_id)
+                            ->where('id', '!=', $agreement->id)
+                            ->where('lifecycle_status', AgreementLifecycleStatus::Active->value)
+                            ->get();
+
+                        $otherActiveDebt = 0;
+                        foreach ($otherAgreements as $otherAgr) {
+                            $bal = $this->balanceService->getBalance($otherAgr, $evaluationDate);
+                            if (is_int($bal['total_remaining']) && $bal['total_remaining'] > 0) {
+                                $otherActiveDebt += $bal['total_remaining'];
+                            }
+                        }
+
+                        if ($otherActiveDebt >= $excessAmount) {
+                            // Partner still has other active debt >= excess: park as identified_unallocated
+                            FundLot::create([
+                                'bank_transaction_id' => $allocation->bank_transaction_id,
+                                'partner_id' => $agreement->partner_id,
+                                'source_agreement_id' => $agreement->id,
+                                'lot_type' => FundLotType::IdentifiedUnallocated,
+                                'amount' => $excessAmount,
+                                'evidence' => $allocation->evidence,
+                                'reason' => 'Kelebihan alokasi perjanjian diparkir untuk perjanjian aktif mitra lainnya (DEC-006 / DP-7)',
+                                'idempotency_key' => (string) Str::uuid(),
+                                'version' => 1,
+                            ]);
+                        } elseif ($otherActiveDebt === 0) {
+                            // Partner has zero other active debt: true excess
+                            FundLot::create([
+                                'bank_transaction_id' => $allocation->bank_transaction_id,
+                                'partner_id' => $agreement->partner_id,
+                                'source_agreement_id' => $agreement->id,
+                                'lot_type' => FundLotType::Excess,
+                                'amount' => $excessAmount,
+                                'evidence' => $allocation->evidence,
+                                'reason' => 'Kelebihan pembayaran melampaui total kewajiban mitra (DEC-006 / DP-7)',
+                                'idempotency_key' => (string) Str::uuid(),
+                                'version' => 1,
+                            ]);
+                        } else {
+                            // Partial split: up to otherActiveDebt is identified_unallocated, remaining is true excess
+                            FundLot::create([
+                                'bank_transaction_id' => $allocation->bank_transaction_id,
+                                'partner_id' => $agreement->partner_id,
+                                'source_agreement_id' => $agreement->id,
+                                'lot_type' => FundLotType::IdentifiedUnallocated,
+                                'amount' => $otherActiveDebt,
+                                'evidence' => $allocation->evidence,
+                                'reason' => 'Kelebihan alokasi perjanjian diparkir untuk sisa kewajiban aktif mitra (DEC-006 / DP-7)',
+                                'idempotency_key' => (string) Str::uuid(),
+                                'version' => 1,
+                            ]);
+
+                            FundLot::create([
+                                'bank_transaction_id' => $allocation->bank_transaction_id,
+                                'partner_id' => $agreement->partner_id,
+                                'source_agreement_id' => $agreement->id,
+                                'lot_type' => FundLotType::Excess,
+                                'amount' => $excessAmount - $otherActiveDebt,
+                                'evidence' => $allocation->evidence,
+                                'reason' => 'Kelebihan pembayaran melampaui total kewajiban mitra (DEC-006 / DP-7)',
+                                'idempotency_key' => (string) Str::uuid(),
+                                'version' => 1,
+                            ]);
+                        }
                     }
                 } else {
                     // Auto-correct allocation components to match calculated amounts (formula spec §6)

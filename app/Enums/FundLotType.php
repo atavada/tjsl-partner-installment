@@ -18,6 +18,7 @@ enum FundLotType: string
     case Abt = 'abt';
     case IdentifiedUnallocated = 'identified_unallocated';
     case Excess = 'excess';
+    case Allocated = 'allocated';
 
     public function label(): string
     {
@@ -25,6 +26,7 @@ enum FundLotType: string
             self::Abt => 'Angsuran Belum Teridentifikasi (ABT)',
             self::IdentifiedUnallocated => 'Teridentifikasi Belum Teralokasi',
             self::Excess => 'Kelebihan Pembayaran (Excess)',
+            self::Allocated => 'Teralokasi (Allocated)',
         };
     }
 }

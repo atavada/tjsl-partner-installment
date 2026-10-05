@@ -7,12 +7,15 @@ namespace App\Http\Controllers;
 use App\Enums\FundLotType;
 use App\Enums\PaymentState;
 use App\Enums\Permission;
+use App\Http\Requests\AllocateFundLotRequest;
 use App\Http\Requests\IdentifyAbtLotRequest;
 use App\Http\Requests\StoreAbtLotRequest;
 use App\Http\Resources\FundLotResource;
+use App\Models\Agreement;
 use App\Models\BankTransaction;
 use App\Models\FundLot;
 use App\Models\Partner;
+use App\Services\FundTransferService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -201,14 +204,62 @@ class FundLotController extends Controller
     }
 
     /**
+     * Allocate an identified unallocated ABT lot to an agreement per DEC-006 & TASK-REM-007.
+     */
+    public function allocateToAgreement(
+        AllocateFundLotRequest $request,
+        FundLot $fundLot,
+        FundTransferService $fundTransferService
+    ): JsonResponse|RedirectResponse {
+        Gate::authorize('allocate', $fundLot);
+
+        $agreement = Agreement::findOrFail($request->validated('agreement_id'));
+
+        $transfer = $fundTransferService->allocateAbtToAgreement(
+            lot: $fundLot,
+            agreement: $agreement,
+            amount: (int) $request->validated('amount'),
+            actor: $request->user(),
+            reason: $request->validated('reason'),
+            effectiveDate: $request->validated('effective_date'),
+            idempotencyKey: $request->validated('idempotency_key'),
+        );
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Dana ABT berhasil dialokasikan ke perjanjian.',
+                'transfer_id' => $transfer->id,
+                'lot_id' => $fundLot->id,
+                'remaining_capacity' => $fundLot->refresh()->calculateRemainingCapacity(),
+            ], 200);
+        }
+
+        return redirect()->back()->with('success', 'Dana ABT berhasil dialokasikan ke perjanjian.');
+    }
+
+    /**
      * Display a specific fund lot.
      */
-    public function show(FundLot $fundLot): FundLotResource
+    public function show(Request $request, FundLot $fundLot): JsonResponse|InertiaResponse
     {
         Gate::authorize('view', $fundLot);
 
-        return new FundLotResource(
-            $fundLot->load(['partner', 'identifiedBy', 'sourceAgreement', 'bankTransaction'])
-        );
+        $fundLot->load([
+            'partner.agreements',
+            'identifiedBy',
+            'sourceAgreement',
+            'bankTransaction',
+            'transfers.targetAgreement',
+            'transfers.actor',
+            'transfers.linkedAllocation',
+        ]);
+
+        if ($request->wantsJson()) {
+            return (new FundLotResource($fundLot))->response()->setStatusCode(200);
+        }
+
+        return Inertia::render('FundLots/Show', [
+            'lot' => (new FundLotResource($fundLot))->resolve($request),
+        ]);
     }
 }

@@ -8,6 +8,7 @@ use App\Enums\AgreementLifecycleStatus;
 use App\Enums\PaymentState;
 use App\Models\Agreement;
 use App\Models\InstallmentSchedule;
+use App\Models\Partner;
 use App\Models\PaymentAllocation;
 use App\Models\ReceivableAdjustment;
 use Carbon\CarbonInterface;
@@ -303,5 +304,41 @@ class BalanceService
             'included_event_ids' => $includedEventIds,
             'warnings' => $warnings,
         ];
+    }
+
+    /**
+     * Calculate partner total remaining debt across all active agreements.
+     *
+     * Per DP-7 (Excess Scope) & DEC-006:
+     * partner_total_remaining(as_of) = SUM(remaining over that partner's active agreements)
+     *
+     * Only agreements with lifecycle_status = Active are included.
+     * Draft agreements do not create debt (PRD FR-02).
+     * Closed/completed/cancelled agreements have no active receivable.
+     *
+     * @param  Partner|string  $partner  Partner model or partner UUID
+     * @param  CarbonInterface|null  $asOf  Evaluation date
+     * @return int Total remaining debt in integer Rupiah
+     */
+    public function getPartnerTotalRemaining(
+        Partner|string $partner,
+        ?CarbonInterface $asOf = null
+    ): int {
+        $partnerId = $partner instanceof Partner ? $partner->id : $partner;
+
+        $agreements = Agreement::query()
+            ->where('partner_id', $partnerId)
+            ->where('lifecycle_status', AgreementLifecycleStatus::Active->value)
+            ->get();
+
+        $totalRemaining = 0;
+        foreach ($agreements as $agreement) {
+            $balance = $this->getBalance($agreement, $asOf);
+            if (is_int($balance['total_remaining']) && $balance['total_remaining'] > 0) {
+                $totalRemaining += $balance['total_remaining'];
+            }
+        }
+
+        return $totalRemaining;
     }
 }

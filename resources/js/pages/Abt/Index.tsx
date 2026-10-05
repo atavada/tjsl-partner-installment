@@ -9,8 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { FundLotData, FundLotFilters, FundLotPartner, FundLotStats, FundLotType, PaginatedFundLots } from '@/types/fund-lot';
-import { Head, router, useForm } from '@inertiajs/react';
-import { AlertCircle, CheckCircle2, CircleDollarSign, Clock, HelpCircle, Info, Plus, Search, UserCheck } from 'lucide-react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import {
+    AlertCircle,
+    ArrowRightLeft,
+    CheckCircle2,
+    CircleDollarSign,
+    Clock,
+    ExternalLink,
+    HelpCircle,
+    Info,
+    Plus,
+    Search,
+    UserCheck,
+} from 'lucide-react';
 import React, { useState } from 'react';
 
 interface IndexProps {
@@ -41,6 +53,9 @@ export default function Index({ lots, stats, verifiedPartners, filters }: IndexP
     // Dialog state for Identification
     const [identifyingLot, setIdentifyingLot] = useState<FundLotData | null>(null);
 
+    // Dialog state for Allocation to Agreement per TASK-REM-007
+    const [allocatingLot, setAllocatingLot] = useState<FundLotData | null>(null);
+
     // Form for capturing ABT
     const today = new Date().toISOString().split('T')[0];
     const createForm = useForm({
@@ -60,6 +75,15 @@ export default function Index({ lots, stats, verifiedPartners, filters }: IndexP
     const identifyForm = useForm({
         partner_id: '',
         evidence: '',
+    });
+
+    // Form for allocating ABT to agreement
+    const allocateForm = useForm({
+        agreement_id: '',
+        amount: '',
+        reason: '',
+        effective_date: today,
+        idempotency_key: crypto.randomUUID(),
     });
 
     const handleSearchSubmit = (e: React.FormEvent) => {
@@ -121,6 +145,36 @@ export default function Index({ lots, stats, verifiedPartners, filters }: IndexP
         });
     };
 
+    const handleOpenAllocate = (lot: FundLotData) => {
+        setAllocatingLot(lot);
+        allocateForm.reset();
+        allocateForm.clearErrors();
+        const firstAgr = lot.partner?.active_agreements?.[0];
+        const defaultAgrId = firstAgr?.id ?? '';
+        const defaultAmount = Math.min(lot.remaining_capacity, firstAgr ? firstAgr.remaining_balance : lot.remaining_capacity);
+
+        allocateForm.setData({
+            agreement_id: defaultAgrId,
+            amount: defaultAmount > 0 ? defaultAmount.toString() : lot.remaining_capacity.toString(),
+            reason: firstAgr ? `Alokasi dana ABT untuk perjanjian ${firstAgr.agreement_number}` : 'Alokasi dana ABT ke perjanjian',
+            effective_date: today,
+            idempotency_key: crypto.randomUUID(),
+        });
+    };
+
+    const handleAllocateSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!allocatingLot) return;
+
+        allocateForm.post(route('fund-lots.allocate', allocatingLot.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setAllocatingLot(null);
+                allocateForm.reset();
+            },
+        });
+    };
+
     const getLotTypeBadge = (type: FundLotType) => {
         switch (type) {
             case 'abt':
@@ -142,6 +196,13 @@ export default function Index({ lots, stats, verifiedPartners, filters }: IndexP
                     <Badge variant="default" className="border-purple-500/30 bg-purple-600 text-white">
                         <CheckCircle2 className="mr-1 size-3" />
                         Kelebihan Bayar (Excess)
+                    </Badge>
+                );
+            case 'allocated':
+                return (
+                    <Badge variant="outline" className="border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                        <CheckCircle2 className="mr-1 size-3" />
+                        Teralokasi
                     </Badge>
                 );
         }
@@ -330,7 +391,14 @@ export default function Index({ lots, stats, verifiedPartners, filters }: IndexP
                                                 <div className="text-muted-foreground mt-1 text-xs">ID: {lot.id.substring(0, 8)}...</div>
                                             </td>
 
-                                            <td className="px-4 py-3 font-semibold whitespace-nowrap">{formatCurrency(lot.amount)}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                <div className="font-semibold">{formatCurrency(lot.amount)}</div>
+                                                {lot.remaining_capacity !== undefined && lot.remaining_capacity !== lot.amount && (
+                                                    <div className="text-muted-foreground text-xs">
+                                                        Sisa: {formatCurrency(lot.remaining_capacity)}
+                                                    </div>
+                                                )}
+                                            </td>
 
                                             <td className="px-4 py-3">
                                                 {lot.partner ? (
@@ -369,25 +437,54 @@ export default function Index({ lots, stats, verifiedPartners, filters }: IndexP
                                             </td>
 
                                             <td className="px-4 py-3 text-right">
-                                                {lot.lot_type === 'abt' ? (
+                                                <div className="flex items-center justify-end gap-1.5">
                                                     <Button
                                                         size="sm"
-                                                        variant="outline"
-                                                        onClick={() => handleOpenIdentify(lot)}
-                                                        className="border-amber-500/50 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
+                                                        variant="ghost"
+                                                        asChild
+                                                        className="text-muted-foreground hover:text-foreground h-8 px-2 text-xs"
                                                     >
-                                                        <UserCheck className="mr-1 size-3.5" />
-                                                        Identifikasi Mitra
+                                                        <Link href={route('fund-lots.show', lot.id)}>
+                                                            <ExternalLink className="mr-1 size-3.5" />
+                                                            Detail
+                                                        </Link>
                                                     </Button>
-                                                ) : lot.lot_type === 'identified_unallocated' ? (
-                                                    <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400">
-                                                        Siap Alokasi
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="outline" className="text-xs text-purple-600 dark:text-purple-400">
-                                                        Kelebihan Utang
-                                                    </Badge>
-                                                )}
+                                                    {lot.lot_type === 'abt' ? (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => handleOpenIdentify(lot)}
+                                                            className="border-amber-500/50 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
+                                                        >
+                                                            <UserCheck className="mr-1 size-3.5" />
+                                                            Identifikasi Mitra
+                                                        </Button>
+                                                    ) : lot.lot_type === 'identified_unallocated' ? (
+                                                        lot.remaining_capacity > 0 ? (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleOpenAllocate(lot)}
+                                                                className="border-blue-500/50 text-blue-700 hover:bg-blue-500/10 dark:text-blue-400"
+                                                            >
+                                                                <ArrowRightLeft className="mr-1 size-3.5" />
+                                                                Alokasikan
+                                                            </Button>
+                                                        ) : (
+                                                            <Badge variant="outline" className="text-muted-foreground text-xs">
+                                                                Habis Teralokasi
+                                                            </Badge>
+                                                        )
+                                                    ) : lot.lot_type === 'allocated' ? (
+                                                        <Badge variant="outline" className="text-xs text-emerald-600 dark:text-emerald-400">
+                                                            Teralokasi
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="text-xs text-purple-600 dark:text-purple-400">
+                                                            Kelebihan Utang
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -569,6 +666,165 @@ export default function Index({ lots, stats, verifiedPartners, filters }: IndexP
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal: Alokasi Dana ABT ke Perjanjian per TASK-REM-007 */}
+            <Dialog open={!!allocatingLot} onOpenChange={(open) => !open && setAllocatingLot(null)}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Alokasikan Dana Parkir ke Perjanjian</DialogTitle>
+                        <DialogDescription>
+                            Alokasikan dana yang telah teridentifikasi ke perjanjian aktif mitra binaan per DEC-006 & DP-7.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {allocatingLot && (
+                        <form onSubmit={handleAllocateSubmit} className="space-y-4">
+                            {/* Ringkasan Mitra & Dana */}
+                            <div className="bg-muted/40 space-y-2 rounded-lg border p-3 text-xs">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Mitra Pemilik:</span>
+                                    <span className="text-foreground font-semibold">
+                                        {allocatingLot.partner?.name} ({allocatingLot.partner?.partner_no_id ?? '-'})
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Sisa Kapasitas Dana:</span>
+                                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                        {formatCurrency(allocatingLot.remaining_capacity)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between border-t pt-1.5">
+                                    <span className="text-muted-foreground">Total Sisa Utang Mitra (Semua Perjanjian):</span>
+                                    <span className="text-foreground font-semibold">
+                                        {formatCurrency(allocatingLot.partner?.total_remaining_debt ?? 0)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Pilih Perjanjian */}
+                            <div>
+                                <Label htmlFor="allocate_agreement_id">Pilih Perjanjian Aktif *</Label>
+                                {allocatingLot.partner?.active_agreements && allocatingLot.partner.active_agreements.length > 0 ? (
+                                    <Select
+                                        value={allocateForm.data.agreement_id}
+                                        onValueChange={(val) => {
+                                            const agr = allocatingLot.partner?.active_agreements?.find((a) => a.id === val);
+                                            allocateForm.setData((prev) => ({
+                                                ...prev,
+                                                agreement_id: val,
+                                                reason: agr ? `Alokasi dana ABT untuk perjanjian ${agr.agreement_number}` : prev.reason,
+                                            }));
+                                        }}
+                                    >
+                                        <SelectTrigger id="allocate_agreement_id">
+                                            <SelectValue placeholder="Pilih perjanjian tujuan alokasi..." />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-60">
+                                            {allocatingLot.partner.active_agreements.map((agr) => (
+                                                <SelectItem key={agr.id} value={agr.id}>
+                                                    {agr.agreement_number} — Sisa: {formatCurrency(agr.remaining_balance)}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                ) : (
+                                    <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
+                                        Mitra ini tidak memiliki perjanjian berstatus Aktif. Dana tetap diparkir sampai perjanjian aktif tersedia.
+                                    </div>
+                                )}
+                                {allocateForm.errors.agreement_id && (
+                                    <p className="text-destructive mt-1 text-xs">{allocateForm.errors.agreement_id}</p>
+                                )}
+                            </div>
+
+                            {/* Jumlah Alokasi */}
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="allocate_amount">Jumlah Alokasi (Rp) *</Label>
+                                    {allocatingLot.partner?.active_agreements?.find((a) => a.id === allocateForm.data.agreement_id) && (
+                                        <div className="flex gap-1.5">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 px-1.5 text-[11px] text-blue-600 dark:text-blue-400"
+                                                onClick={() => {
+                                                    const agr = allocatingLot.partner?.active_agreements?.find(
+                                                        (a) => a.id === allocateForm.data.agreement_id,
+                                                    );
+                                                    if (agr) {
+                                                        const targetAmount = Math.min(allocatingLot.remaining_capacity, agr.remaining_balance);
+                                                        allocateForm.setData('amount', targetAmount.toString());
+                                                    }
+                                                }}
+                                            >
+                                                Sesuai Sisa Perjanjian
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 px-1.5 text-[11px] text-blue-600 dark:text-blue-400"
+                                                onClick={() => allocateForm.setData('amount', allocatingLot.remaining_capacity.toString())}
+                                            >
+                                                Semua Sisa Dana
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                                <Input
+                                    id="allocate_amount"
+                                    type="number"
+                                    required
+                                    min="1"
+                                    max={allocatingLot.remaining_capacity}
+                                    placeholder="Contoh: 500000"
+                                    value={allocateForm.data.amount}
+                                    onChange={(e) => allocateForm.setData('amount', e.target.value)}
+                                />
+                                {allocateForm.errors.amount && <p className="text-destructive mt-1 text-xs">{allocateForm.errors.amount}</p>}
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <div>
+                                    <Label htmlFor="allocate_effective_date">Tanggal Efektif</Label>
+                                    <Input
+                                        id="allocate_effective_date"
+                                        type="date"
+                                        value={allocateForm.data.effective_date}
+                                        onChange={(e) => allocateForm.setData('effective_date', e.target.value)}
+                                    />
+                                    {allocateForm.errors.effective_date && (
+                                        <p className="text-destructive mt-1 text-xs">{allocateForm.errors.effective_date}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <Label htmlFor="allocate_reason">Alasan / Catatan</Label>
+                                    <Input
+                                        id="allocate_reason"
+                                        value={allocateForm.data.reason}
+                                        onChange={(e) => allocateForm.setData('reason', e.target.value)}
+                                    />
+                                    {allocateForm.errors.reason && <p className="text-destructive mt-1 text-xs">{allocateForm.errors.reason}</p>}
+                                </div>
+                            </div>
+
+                            <DialogFooter className="mt-6">
+                                <Button type="button" variant="outline" onClick={() => setAllocatingLot(null)}>
+                                    Batal
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={allocateForm.processing || !allocateForm.data.agreement_id}
+                                    className="bg-blue-600 text-white hover:bg-blue-700"
+                                >
+                                    {allocateForm.processing ? 'Memproses Alokasi...' : 'Alokasikan Dana'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    )}
                 </DialogContent>
             </Dialog>
         </AppLayout>

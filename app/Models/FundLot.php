@@ -140,14 +140,17 @@ class FundLot extends Model
         return $this->lot_type === FundLotType::Excess;
     }
 
+    public function isAllocated(): bool
+    {
+        return $this->lot_type === FundLotType::Allocated;
+    }
+
     /**
      * Compute remaining capacity of this lot available for transfer or allocation.
      */
     public function calculateRemainingCapacity(): int
     {
-        $transferred = (int) $this->transfers()->sum('amount');
-
-        return max(0, (int) $this->amount - $transferred);
+        return max(0, (int) $this->amount);
     }
 
     /**

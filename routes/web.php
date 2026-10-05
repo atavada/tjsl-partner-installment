@@ -29,12 +29,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('partners/{partner}/agreements/{agreement}/payments/{payment}/allocations/{allocation}/post', [PaymentController::class, 'post'])->name('payments.post');
     Route::post('partners/{partner}/agreements/{agreement}/payments/{payment}/allocations/{allocation}/reverse', [PaymentController::class, 'reverse'])->name('payments.reverse');
 
-    // Fund lots: ABT capture, listing, and identification per DEC-006 (FIMPL-008)
+    // Fund lots: ABT capture, listing, identification, and allocation per DEC-006 (FIMPL-008, TASK-REM-007)
     Route::get('abt', [FundLotController::class, 'index'])->name('abt.index');
     Route::get('fund-lots', [FundLotController::class, 'index'])->name('fund-lots.index');
     Route::post('fund-lots/abt', [FundLotController::class, 'storeAbt'])->name('fund-lots.store-abt');
     Route::get('fund-lots/{fundLot}', [FundLotController::class, 'show'])->name('fund-lots.show');
     Route::post('fund-lots/{fundLot}/identify', [FundLotController::class, 'identify'])->name('fund-lots.identify');
+    Route::post('fund-lots/{fundLot}/allocate', [FundLotController::class, 'allocateToAgreement'])->name('fund-lots.allocate');
 });
 
 require __DIR__.'/settings.php';

@@ -1,9 +1,18 @@
-export type FundLotType = 'abt' | 'identified_unallocated' | 'excess';
+export type FundLotType = 'abt' | 'identified_unallocated' | 'excess' | 'allocated';
+
+export interface FundLotAgreementItem {
+    id: string;
+    agreement_number: string;
+    remaining_balance: number;
+    principal_remaining: number;
+}
 
 export interface FundLotPartner {
     id: string;
     name: string;
     partner_no_id: string | null;
+    total_remaining_debt?: number;
+    active_agreements?: FundLotAgreementItem[];
 }
 
 export interface FundLotUser {
@@ -16,14 +25,43 @@ export interface FundLotAgreement {
     agreement_number: string;
 }
 
+export interface FundLotBankTransaction {
+    id: string;
+    reference: string | null;
+    amount: number;
+    payer_name: string | null;
+    transaction_datetime: string | null;
+    source: string | null;
+}
+
+export interface FundTransferData {
+    id: string;
+    amount: number;
+    effective_date: string | null;
+    reason: string | null;
+    target_agreement: {
+        id: string;
+        agreement_number: string;
+    } | null;
+    actor: {
+        id: number;
+        name: string;
+    } | null;
+    linked_allocation_id: string | null;
+    created_at: string | null;
+}
+
 export interface FundLotData {
     id: string;
     bank_transaction_id: string;
+    bank_transaction?: FundLotBankTransaction | null;
     partner_id: string | null;
     partner?: FundLotPartner | null;
     lot_type: FundLotType;
     lot_type_label: string;
     amount: number;
+    remaining_capacity: number;
+    is_allocated: boolean;
     evidence: string | null;
     identified_by_id: number | null;
     identified_by?: FundLotUser | null;
@@ -31,6 +69,7 @@ export interface FundLotData {
     identification_evidence: string | null;
     source_agreement_id: string | null;
     source_agreement?: FundLotAgreement | null;
+    transfers?: FundTransferData[];
     idempotency_key: string;
     reason: string | null;
     version: number;

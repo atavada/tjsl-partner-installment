@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\FundLotType;
 use App\Enums\Permission;
 use App\Models\FundLot;
 use App\Models\User;
@@ -32,6 +33,21 @@ class FundLotPolicy
     {
         return $user->isOperator()
             || $user->hasPermission(Permission::PaymentStage);
+    }
+
+    public function allocate(User $user, FundLot $fundLot): bool
+    {
+        if ($user->isViewer()) {
+            return false;
+        }
+
+        if ($fundLot->lot_type !== FundLotType::IdentifiedUnallocated) {
+            return false;
+        }
+
+        return $user->isOperator()
+            || $user->hasPermission(Permission::PaymentStage)
+            || $user->hasPermission(Permission::PaymentPost);
     }
 
     public function delete(User $user, FundLot $fundLot): bool
