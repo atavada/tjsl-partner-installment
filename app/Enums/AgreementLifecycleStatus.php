@@ -9,6 +9,7 @@ enum AgreementLifecycleStatus: string
     case Draft = 'draft';
     case Active = 'active';
     case PaidOff = 'paid_off';
+    case Completed = 'completed';
     case ClosedByRescheduling = 'closed_by_rescheduling';
     case Cancelled = 'cancelled';
     case Unknown = 'unknown';
@@ -19,6 +20,7 @@ enum AgreementLifecycleStatus: string
             self::Draft => 'Draft',
             self::Active => 'Aktif',
             self::PaidOff => 'Lunas',
+            self::Completed => 'Selesai',
             self::ClosedByRescheduling => 'Ditutup karena Rescheduling',
             self::Cancelled => 'Dibatalkan',
             self::Unknown => 'Tidak Diketahui',
@@ -28,7 +30,7 @@ enum AgreementLifecycleStatus: string
     public function isClosed(): bool
     {
         return match ($this) {
-            self::PaidOff, self::ClosedByRescheduling, self::Cancelled => true,
+            self::PaidOff, self::Completed, self::ClosedByRescheduling, self::Cancelled => true,
             default => false,
         };
     }
@@ -36,6 +38,11 @@ enum AgreementLifecycleStatus: string
     public function isPaidOff(): bool
     {
         return $this === self::PaidOff;
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this === self::Completed;
     }
 
     public function isClosedByRescheduling(): bool

@@ -162,6 +162,11 @@ class Agreement extends Model
         return $this->lifecycle_status === AgreementLifecycleStatus::PaidOff;
     }
 
+    public function isCompleted(): bool
+    {
+        return $this->lifecycle_status === AgreementLifecycleStatus::Completed;
+    }
+
     public function isClosedByRescheduling(): bool
     {
         return $this->lifecycle_status === AgreementLifecycleStatus::ClosedByRescheduling;

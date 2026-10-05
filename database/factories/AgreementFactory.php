@@ -83,6 +83,14 @@ class AgreementFactory extends Factory
         ]);
     }
 
+    public function completed(): static
+    {
+        return $this->state(fn () => [
+            'lifecycle_status' => AgreementLifecycleStatus::Completed,
+            'legacy_lifecycle_status' => 'Selesai',
+        ]);
+    }
+
     public function closedByRescheduling(): static
     {
         return $this->state(fn () => [

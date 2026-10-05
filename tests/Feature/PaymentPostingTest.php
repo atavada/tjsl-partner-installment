@@ -45,9 +45,13 @@ beforeEach(function () {
         'principal_due' => 1_000_000,
         'interest_due' => 100_000,
         'admin_charge_due' => 50_000,
+        'other_charge_due' => 0,
+        'total_due' => 1_150_000,
         'principal_paid' => 0,
         'interest_paid' => 0,
         'admin_charge_paid' => 0,
+        'other_charge_paid' => 0,
+        'total_paid' => 0,
         'status' => 'pending',
     ]);
 
@@ -58,9 +62,13 @@ beforeEach(function () {
         'principal_due' => 1_000_000,
         'interest_due' => 100_000,
         'admin_charge_due' => 50_000,
+        'other_charge_due' => 0,
+        'total_due' => 1_150_000,
         'principal_paid' => 0,
         'interest_paid' => 0,
         'admin_charge_paid' => 0,
+        'other_charge_paid' => 0,
+        'total_paid' => 0,
         'status' => 'pending',
     ]);
 

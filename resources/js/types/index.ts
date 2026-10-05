@@ -28,13 +28,14 @@ export interface SharedData {
     [key: string]: unknown;
 }
 
-export type Role = 'operator' | 'reconciliation_reviewer' | 'process_owner' | 'auditor' | 'system_admin';
+export type Role = 'operator' | 'reconciliation_reviewer' | 'process_owner' | 'auditor' | 'viewer' | 'system_admin';
 
 export const ROLE_LABELS: Record<Role, string> = {
     operator: 'Kasir TJSL',
     reconciliation_reviewer: 'Kepala Sub Divisi',
     process_owner: 'Sekper / Kepala Divisi',
     auditor: 'Viewer',
+    viewer: 'Viewer',
     system_admin: 'System Admin',
 } as const;
 

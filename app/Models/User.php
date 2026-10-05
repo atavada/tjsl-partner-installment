@@ -102,9 +102,14 @@ class User extends Authenticatable
         return $this->role === Role::ProcessOwner;
     }
 
+    public function isViewer(): bool
+    {
+        return $this->role === Role::Viewer || $this->role === Role::Auditor;
+    }
+
     public function isAuditor(): bool
     {
-        return $this->role === Role::Auditor;
+        return $this->isViewer();
     }
 
     public function isFinancial(): bool
@@ -125,7 +130,7 @@ class User extends Authenticatable
         $permValue = $permission instanceof Permission ? $permission->value : $permission;
 
         // DEC-004: Viewer role (Auditor) strictly denied sensitive data
-        if ($this->role === Role::Auditor && $permEnum !== null && $permEnum->isSensitive()) {
+        if ($this->isViewer() && $permEnum !== null && $permEnum->isSensitive()) {
             return false;
         }
 

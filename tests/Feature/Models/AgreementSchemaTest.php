@@ -201,6 +201,46 @@ describe('closed_by_rescheduling is not paid_off (gate test)', function () {
     });
 });
 
+describe('completed (Selesai) status distinct from paid_off (Lunas) per DEC-002', function () {
+    it('exposes exactly all 7 confirmed business labels', function () {
+        $expectedLabels = [
+            'draft' => 'Draft',
+            'active' => 'Aktif',
+            'paid_off' => 'Lunas',
+            'completed' => 'Selesai',
+            'closed_by_rescheduling' => 'Ditutup karena Rescheduling',
+            'cancelled' => 'Dibatalkan',
+            'unknown' => 'Tidak Diketahui',
+        ];
+
+        expect(count(AgreementLifecycleStatus::cases()))->toBe(7);
+
+        foreach ($expectedLabels as $statusValue => $expectedLabel) {
+            $status = AgreementLifecycleStatus::from($statusValue);
+            expect($status->label())->toBe($expectedLabel);
+        }
+    });
+
+    it('distinguishes contractual completion from financial payoff', function () {
+        $completed = Agreement::factory()->completed()->create();
+        $paidOff = Agreement::factory()->paidOff()->create();
+
+        expect($completed->isCompleted())->toBeTrue();
+        expect($completed->isPaidOff())->toBeFalse();
+        expect($completed->lifecycle_status->isClosed())->toBeTrue();
+        expect($completed->lifecycle_status->label())->toBe('Selesai');
+
+        expect($paidOff->isPaidOff())->toBeTrue();
+        expect($paidOff->isCompleted())->toBeFalse();
+        expect($paidOff->lifecycle_status->isClosed())->toBeTrue();
+        expect($paidOff->lifecycle_status->label())->toBe('Lunas');
+
+        $completedIds = Agreement::where('lifecycle_status', AgreementLifecycleStatus::Completed)->pluck('id');
+        expect($completedIds)->toContain($completed->id);
+        expect($completedIds)->not->toContain($paidOff->id);
+    });
+});
+
 describe('InstallmentSchedule schema and calculation guard (DEC-008)', function () {
     it('creates installment schedule with integer IDR components', function () {
         $agreement = Agreement::factory()->create();

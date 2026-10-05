@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 use App\Enums\Permission;
 use App\Enums\Role;
+use App\Models\Agreement;
+use App\Models\BankTransaction;
+use App\Models\FundLot;
 use App\Models\Partner;
+use App\Models\PaymentAllocation;
 use App\Models\User;
 use App\Models\VirtualAccount;
 use App\Services\MaskingService;
@@ -25,11 +29,12 @@ beforeEach(function () {
 });
 
 describe('PRD Roles Enum', function () {
-    it('defines exactly the five PRD §3 roles', function () {
+    it('defines the confirmed PRD §3 and DEC-009 roles including formal Viewer', function () {
         $expectedRoles = [
             'operator',
             'reconciliation_reviewer',
             'process_owner',
+            'viewer',
             'auditor',
             'system_admin',
         ];
@@ -41,10 +46,20 @@ describe('PRD Roles Enum', function () {
 
     it('provides correct labels for each role', function () {
         expect(Role::Operator->label())->toBe('Kasir TJSL');
+        expect(Role::Kasir->label())->toBe('Kasir TJSL');
         expect(Role::ReconciliationReviewer->label())->toBe('Kepala Sub Divisi');
+        expect(Role::KepalaSubDivisi->label())->toBe('Kepala Sub Divisi');
         expect(Role::ProcessOwner->label())->toBe('Sekper / Kepala Divisi');
+        expect(Role::Sekper->label())->toBe('Sekper / Kepala Divisi');
+        expect(Role::Viewer->label())->toBe('Viewer');
         expect(Role::Auditor->label())->toBe('Viewer');
         expect(Role::SystemAdmin->label())->toBe('System Admin');
+    });
+
+    it('provides role aliases matching DEC-009 terminology', function () {
+        expect(Role::Operator)->toBe(Role::Kasir);
+        expect(Role::ReconciliationReviewer)->toBe(Role::KepalaSubDivisi);
+        expect(Role::ProcessOwner)->toBe(Role::Sekper);
     });
 
     it('provides businessName as alias for label per DEC-009', function () {
@@ -62,10 +77,20 @@ describe('PRD Roles Enum', function () {
 
     it('correctly identifies financial vs non-financial roles', function () {
         expect(Role::Operator->isFinancial())->toBeTrue();
+        expect(Role::Kasir->isFinancial())->toBeTrue();
         expect(Role::ReconciliationReviewer->isFinancial())->toBeTrue();
+        expect(Role::KepalaSubDivisi->isFinancial())->toBeTrue();
         expect(Role::ProcessOwner->isFinancial())->toBeTrue();
+        expect(Role::Sekper->isFinancial())->toBeTrue();
+        expect(Role::Viewer->isFinancial())->toBeFalse();
         expect(Role::Auditor->isFinancial())->toBeFalse();
         expect(Role::SystemAdmin->isFinancial())->toBeFalse();
+    });
+
+    it('contains no allocation.approve permission per DEC-005 and TASK-REM-005', function () {
+        $allPermissions = array_map(fn (Permission $p) => $p->value, Permission::cases());
+        expect($allPermissions)->not->toContain('allocation.approve');
+        expect(defined(Permission::class.'::AllocationApprove'))->toBeFalse();
     });
 });
 
@@ -90,11 +115,12 @@ describe('User Role Assignment and Persistence', function () {
         expect($user->isOperator())->toBeTrue();
     });
 
-    it('supports factory states for all five PRD roles', function () {
+    it('supports factory states for all confirmed roles', function () {
         expect(User::factory()->operator()->make()->role)->toBe(Role::Operator);
         expect(User::factory()->reconciliationReviewer()->make()->role)->toBe(Role::ReconciliationReviewer);
         expect(User::factory()->processOwner()->make()->role)->toBe(Role::ProcessOwner);
-        expect(User::factory()->auditor()->make()->role)->toBe(Role::Auditor);
+        expect(User::factory()->viewer()->make()->role)->toBe(Role::Viewer);
+        expect(User::factory()->auditor()->make()->role)->toBe(Role::Viewer);
         expect(User::factory()->systemAdmin()->make()->role)->toBe(Role::SystemAdmin);
     });
 
@@ -195,14 +221,49 @@ describe('Deny-by-Default Policies (DEC-009)', function () {
         expect(Gate::forUser($admin)->allows('export', Partner::class))->toBeTrue();
     });
 
-    it('denies physical delete of partner for non-admin under Invariant 4', function () {
+    it('denies physical delete of records for all users including system_admin under Invariant 4', function () {
         $partner = Partner::factory()->create();
+        $agreement = Agreement::factory()->create(['partner_id' => $partner->id]);
         $user = User::factory()->operator()->create();
+        $admin = User::factory()->systemAdmin()->create();
 
-        // Even with grant, delete is strictly barred in policy for non-admin
+        // Even with grant, delete is strictly barred in policy and Gate::before
         $user->grantPermission(Permission::PartnerUpdate);
 
         expect(Gate::forUser($user)->allows('delete', $partner))->toBeFalse();
+        expect(Gate::forUser($admin)->allows('delete', $partner))->toBeFalse();
+        expect(Gate::forUser($user)->allows('delete', $agreement))->toBeFalse();
+        expect(Gate::forUser($admin)->allows('delete', $agreement))->toBeFalse();
+    });
+
+    it('forbids system_admin from financial posting or ledger mutation without cashier permissions per DEC-009', function () {
+        $admin = User::factory()->systemAdmin()->create();
+        $partner = Partner::factory()->create();
+        $agreement = Agreement::factory()->create(['partner_id' => $partner->id]);
+        $transaction = BankTransaction::factory()->create();
+        $allocation = PaymentAllocation::factory()->create([
+            'agreement_id' => $agreement->id,
+            'bank_transaction_id' => $transaction->id,
+        ]);
+        $fundLot = FundLot::factory()->create(['partner_id' => $partner->id]);
+
+        // System Admin cannot post payments without PaymentPost permission
+        expect(Gate::forUser($admin)->allows('post', $allocation))->toBeFalse();
+
+        // System Admin cannot reverse payments without PaymentPost permission
+        expect(Gate::forUser($admin)->allows('reverse', $transaction))->toBeFalse();
+
+        // System Admin cannot stage payments without PaymentStage permission
+        expect(Gate::forUser($admin)->allows('create', BankTransaction::class))->toBeFalse();
+
+        // System Admin cannot create or identify ABT fund lots without cashier role/permission
+        expect(Gate::forUser($admin)->allows('createAbt', FundLot::class))->toBeFalse();
+        expect(Gate::forUser($admin)->allows('identify', $fundLot))->toBeFalse();
+
+        // When granted explicit cashier permissions, posting is authorized
+        $adminWithPost = User::factory()->systemAdmin()->create();
+        $adminWithPost->grantPermission(Permission::PaymentPost);
+        expect(Gate::forUser($adminWithPost)->allows('post', $allocation))->toBeTrue();
     });
 
     it('allows action when explicit capability grant is present', function () {

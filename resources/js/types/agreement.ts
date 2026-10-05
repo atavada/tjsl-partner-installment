@@ -133,6 +133,7 @@ export interface AgreementData {
     signature_summary_label: string;
     is_draft: boolean;
     is_paid_off: boolean;
+    is_completed: boolean;
     is_closed_by_rescheduling: boolean;
     provenance: string;
     approved_source: string | null;

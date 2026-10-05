@@ -76,6 +76,7 @@ class AgreementResource extends JsonResource
             'signature_summary_label' => $this->signature_summary?->label(),
             'is_draft' => $isDraft,
             'is_paid_off' => $this->isPaidOff(),
+            'is_completed' => $this->isCompleted(),
             'is_closed_by_rescheduling' => $this->isClosedByRescheduling(),
             'provenance' => $this->provenance,
             'approved_source' => $this->approved_source,

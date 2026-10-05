@@ -66,11 +66,16 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function auditor(): static
+    public function viewer(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role' => Role::Auditor,
+            'role' => Role::Viewer,
         ]);
+    }
+
+    public function auditor(): static
+    {
+        return $this->viewer();
     }
 
     public function systemAdmin(): static

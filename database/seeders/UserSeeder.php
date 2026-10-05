@@ -61,7 +61,6 @@ class UserSeeder extends Seeder
         $reviewer->role = Role::ReconciliationReviewer;
         $reviewer->grantPermission(Permission::PartnerView);
         $reviewer->grantPermission(Permission::AgreementView);
-        $reviewer->grantPermission(Permission::AllocationApprove);
         $reviewer->save();
 
         // 4. Auditor

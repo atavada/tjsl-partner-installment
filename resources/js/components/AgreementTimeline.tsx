@@ -28,6 +28,7 @@ export function getLifecycleBadgeVariant(status: string | null): 'default' | 'se
         case 'draft':
             return 'secondary';
         case 'paid_off':
+        case 'completed':
             return 'outline';
         case 'closed_by_rescheduling':
         case 'cancelled':

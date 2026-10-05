@@ -11,19 +11,26 @@ namespace App\Enums;
  */
 enum Role: string
 {
-    case Operator = 'operator';
-    case ReconciliationReviewer = 'reconciliation_reviewer';
-    case ProcessOwner = 'process_owner';
+    case Kasir = 'operator';
+    case KepalaSubDivisi = 'reconciliation_reviewer';
+    case Sekper = 'process_owner';
+    case Viewer = 'viewer';
     case Auditor = 'auditor';
     case SystemAdmin = 'system_admin';
+
+    public const Operator = self::Kasir;
+
+    public const ReconciliationReviewer = self::KepalaSubDivisi;
+
+    public const ProcessOwner = self::Sekper;
 
     public function label(): string
     {
         return match ($this) {
-            self::Operator => 'Kasir TJSL',
-            self::ReconciliationReviewer => 'Kepala Sub Divisi',
-            self::ProcessOwner => 'Sekper / Kepala Divisi',
-            self::Auditor => 'Viewer',
+            self::Kasir => 'Kasir TJSL',
+            self::KepalaSubDivisi => 'Kepala Sub Divisi',
+            self::Sekper => 'Sekper / Kepala Divisi',
+            self::Viewer, self::Auditor => 'Viewer',
             self::SystemAdmin => 'System Admin',
         };
     }
@@ -39,8 +46,8 @@ enum Role: string
     public function isFinancial(): bool
     {
         return match ($this) {
-            self::Operator, self::ReconciliationReviewer, self::ProcessOwner => true,
-            self::Auditor, self::SystemAdmin => false,
+            self::Kasir, self::KepalaSubDivisi, self::Sekper => true,
+            self::Viewer, self::Auditor, self::SystemAdmin => false,
         };
     }
 }

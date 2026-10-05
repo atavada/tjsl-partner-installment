@@ -23,7 +23,6 @@ enum Permission: string
     case PaymentStage = 'payment.stage';
     case PaymentPost = 'payment.post';
     case MatchPropose = 'match.propose';
-    case AllocationApprove = 'allocation.approve';
     case AgreementActivate = 'agreement.activate';
     case PolicyDefine = 'policy.define';
     case UsersManage = 'users.manage';

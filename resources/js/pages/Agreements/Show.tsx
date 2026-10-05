@@ -117,9 +117,11 @@ export default function Show({ partner, agreement }: ShowProps) {
                                         ? 'Perjanjian ditutup karena digantikan oleh perjanjian rescheduling penerus (bukan pelunasan kas).'
                                         : agreement.is_paid_off
                                           ? 'Perjanjian telah lunas setelah seluruh komponen terverifikasi nol.'
-                                          : isDraft
-                                            ? 'Draft pengajuan perjanjian; aktivasi memerlukan persetujuan dan verifikasi.'
-                                            : 'Perjanjian berjalan aktif.'}
+                                          : agreement.is_completed
+                                            ? 'Perjanjian telah selesai secara kontraktual (berakhir masa berlakunya).'
+                                            : isDraft
+                                              ? 'Draft pengajuan perjanjian; aktivasi memerlukan persetujuan dan verifikasi.'
+                                              : 'Perjanjian berjalan aktif.'}
                                 </p>
                                 {agreement.status_dimensions.lifecycle.legacy && (
                                     <p className="text-muted-foreground mt-1 text-[11px] italic">
