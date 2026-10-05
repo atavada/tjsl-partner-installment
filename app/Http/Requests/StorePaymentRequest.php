@@ -24,6 +24,30 @@ class StorePaymentRequest extends FormRequest
     }
 
     /**
+     * Prepare data for validation, resolving partner and agreement from route if omitted.
+     */
+    protected function prepareForValidation(): void
+    {
+        $routePartner = $this->route('partner');
+        $partnerId = $routePartner instanceof Partner ? $routePartner->id : $routePartner;
+
+        $routeAgreement = $this->route('agreement');
+        $agreementId = $routeAgreement instanceof Agreement ? $routeAgreement->id : $routeAgreement;
+
+        $merge = [];
+        if (! $this->has('partner_id') && $partnerId) {
+            $merge['partner_id'] = $partnerId;
+        }
+        if (! $this->has('agreement_id') && $agreementId) {
+            $merge['agreement_id'] = $agreementId;
+        }
+
+        if (! empty($merge)) {
+            $this->merge($merge);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -85,6 +109,25 @@ class StorePaymentRequest extends FormRequest
             // Check agreement belongs to specified partner
             $partnerId = (string) $this->input('partner_id');
             $agreementId = (string) $this->input('agreement_id');
+
+            // Route binding consistency checks when route parameters are present
+            $routePartner = $this->route('partner');
+            $routePartnerId = $routePartner instanceof Partner ? $routePartner->id : $routePartner;
+            if ($routePartnerId && $partnerId !== '' && $partnerId !== (string) $routePartnerId) {
+                $v->errors()->add(
+                    'partner_id',
+                    'ID mitra pada payload tidak sesuai dengan parameter rute.'
+                );
+            }
+
+            $routeAgreement = $this->route('agreement');
+            $routeAgreementId = $routeAgreement instanceof Agreement ? $routeAgreement->id : $routeAgreement;
+            if ($routeAgreementId && $agreementId !== '' && $agreementId !== (string) $routeAgreementId) {
+                $v->errors()->add(
+                    'agreement_id',
+                    'ID perjanjian pada payload tidak sesuai dengan parameter rute.'
+                );
+            }
 
             if ($partnerId !== '' && $agreementId !== '') {
                 $agreement = Agreement::find($agreementId);

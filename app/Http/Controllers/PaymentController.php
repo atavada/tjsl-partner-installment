@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Enums\PaymentState;
+use App\Enums\Permission;
 use App\Http\Requests\StorePaymentRequest;
 use App\Http\Resources\AgreementResource;
 use App\Http\Resources\PartnerResource;
@@ -138,7 +140,54 @@ class PaymentController extends Controller
             'partner' => (new PartnerResource($partner))->resolve($request),
             'agreement' => (new AgreementResource($agreement))->resolve($request),
             'payment' => (new PaymentResource($payment))->resolve($request),
+            'can_post' => $request->user()?->hasPermission(Permission::PaymentPost) ?? false,
         ]);
+    }
+
+    /**
+     * Post a payment allocation to the receivable ledger per DEC-008 §6.
+     */
+    public function post(
+        Request $request,
+        Partner $partner,
+        Agreement $agreement,
+        BankTransaction $payment,
+        PaymentAllocation $allocation,
+        PaymentStagingService $stagingService
+    ): JsonResponse|RedirectResponse {
+        abort_unless($agreement->partner_id === $partner->id, 404, 'Agreement not found for this partner.');
+        abort_unless($allocation->bank_transaction_id === $payment->id, 404, 'Allocation does not belong to this transaction.');
+        abort_unless($allocation->agreement_id === $agreement->id, 404, 'Allocation does not belong to this agreement.');
+
+        Gate::authorize('post', $allocation);
+
+        if ($allocation->state === PaymentState::Posted) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Alokasi pembayaran sudah berstatus dibukukan (posted).',
+                    'allocation_id' => $allocation->id,
+                    'state' => $allocation->state->value,
+                ]);
+            }
+
+            return redirect()
+                ->route('payments.show', [$partner, $agreement, $payment])
+                ->with('info', 'Alokasi pembayaran sudah berstatus dibukukan.');
+        }
+
+        $posted = $stagingService->post($allocation, $request->user());
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Alokasi pembayaran berhasil dibukukan ke buku besar piutang.',
+                'allocation_id' => $posted->id,
+                'state' => $posted->state->value,
+            ]);
+        }
+
+        return redirect()
+            ->route('payments.show', [$partner, $agreement, $payment])
+            ->with('success', 'Alokasi pembayaran berhasil dibukukan ke buku besar piutang.');
     }
 
     /**

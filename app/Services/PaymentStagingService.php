@@ -6,13 +6,17 @@ namespace App\Services;
 
 use App\Enums\FundLotType;
 use App\Enums\PaymentState;
+use App\Enums\Permission;
 use App\Exceptions\DuplicatePaymentException;
 use App\Exceptions\NotApprovedException;
+use App\Models\Agreement;
 use App\Models\BankTransaction;
 use App\Models\FundLot;
+use App\Models\InstallmentSchedule;
 use App\Models\PaymentAllocation;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -21,7 +25,10 @@ class PaymentStagingService
 {
     public function __construct(
         protected AllocationService $allocationService = new AllocationService,
-    ) {}
+        protected ?AuditService $auditService = null,
+    ) {
+        $this->auditService ??= app(AuditService::class);
+    }
 
     /**
      * Stage a payment transaction and allocation proposal.
@@ -200,33 +207,70 @@ class PaymentStagingService
      */
     public function post(PaymentAllocation $allocation, User $actor): PaymentAllocation
     {
+        if (! $actor->hasPermission(Permission::PaymentPost)) {
+            $this->auditService?->log(
+                action: 'unauthorized_posting_attempt',
+                target: $allocation,
+                delta: [
+                    'total_amount' => (int) $allocation->total_amount,
+                    'agreement_id' => (string) $allocation->agreement_id,
+                    'bank_transaction_id' => (string) $allocation->bank_transaction_id,
+                ],
+                reason: 'Unauthorized attempt to post payment allocation without payment.post permission',
+                actor: $actor,
+            );
+
+            throw new AuthorizationException('User does not have permission to post payments.');
+        }
+
         if ($allocation->state !== PaymentState::Submitted && $allocation->state !== PaymentState::Draft) {
             throw new InvalidArgumentException("Allocation must be in 'draft' or 'submitted' state to be posted. Current state: '{$allocation->state->value}'.");
         }
 
         return DB::transaction(function () use ($allocation, $actor): PaymentAllocation {
-            $agreement = $allocation->agreement;
+            /** @var PaymentAllocation $lockedAllocation */
+            $lockedAllocation = PaymentAllocation::where('id', $allocation->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedAllocation->state === PaymentState::Posted) {
+                return $lockedAllocation;
+            }
+
+            if ($lockedAllocation->state !== PaymentState::Submitted && $lockedAllocation->state !== PaymentState::Draft) {
+                throw new InvalidArgumentException("Allocation must be in 'draft' or 'submitted' state to be posted. Current state: '{$lockedAllocation->state->value}'.");
+            }
+
+            /** @var Agreement|null $agreement */
+            $agreement = Agreement::where('id', $lockedAllocation->agreement_id)
+                ->lockForUpdate()
+                ->first();
 
             if ($agreement === null) {
                 throw new InvalidArgumentException('Allocation must be linked to a valid agreement to post.');
             }
 
+            // Lock installment schedules for this agreement before calculation per DEC-008 / TiDB safety
+            InstallmentSchedule::where('agreement_id', $agreement->id)
+                ->lockForUpdate()
+                ->get();
+
             // Execute allocation across installment schedules per DEC-008 §6
             $this->allocationService->allocate(
-                allocation: $allocation,
+                allocation: $lockedAllocation,
                 agreement: $agreement,
-                asOf: Carbon::parse($allocation->effective_date ?? now()),
+                asOf: Carbon::parse($lockedAllocation->effective_date ?? now()),
             );
 
             // Transition allocation state to Posted
-            $allocation->update([
+            $lockedAllocation->update([
                 'state' => PaymentState::Posted,
                 'approved_by_id' => $actor->id,
                 'approved_at' => Carbon::now(),
-                'version' => (int) $allocation->version + 1,
+                'version' => (int) $lockedAllocation->version + 1,
             ]);
 
-            return $allocation->refresh();
+            return $lockedAllocation->refresh();
         });
     }
 }

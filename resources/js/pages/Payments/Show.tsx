@@ -10,8 +10,8 @@ import { BreadcrumbItem } from '@/types';
 import { AgreementData } from '@/types/agreement';
 import { PartnerData } from '@/types/partner';
 import { PaymentData } from '@/types/payment';
-import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, RotateCcw, ShieldAlert } from 'lucide-react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { ArrowLeft, CheckCircle2, RotateCcw, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { getPaymentStateBadgeVariant } from './Index';
 
@@ -19,9 +19,10 @@ interface ShowProps {
     partner: PartnerData;
     agreement: AgreementData;
     payment: PaymentData;
+    can_post?: boolean;
 }
 
-export default function Show({ partner, agreement, payment }: ShowProps) {
+export default function Show({ partner, agreement, payment, can_post = true }: ShowProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Dashboard',
@@ -54,10 +55,24 @@ export default function Show({ partner, agreement, payment }: ShowProps) {
     ];
 
     const [reversingAllocationId, setReversingAllocationId] = useState<string | null>(null);
+    const [postingAllocationId, setPostingAllocationId] = useState<string | null>(null);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         reason: '',
     });
+
+    const handlePostAllocation = (allocationId: string) => {
+        router.post(
+            `/partners/${partner.id}/agreements/${agreement.id}/payments/${payment.id}/allocations/${allocationId}/post`,
+            {},
+            {
+                onStart: () => setPostingAllocationId(allocationId),
+                onFinish: () => setPostingAllocationId(null),
+            },
+        );
+    };
+
+    const hasDraftAllocations = payment.allocations.some((alloc) => alloc.state === 'draft' || alloc.state === 'submitted');
 
     const handleReversalSubmit = (allocationId: string) => {
         post(`/partners/${partner.id}/agreements/${agreement.id}/payments/${payment.id}/allocations/${allocationId}/reverse`, {
@@ -97,15 +112,17 @@ export default function Show({ partner, agreement, payment }: ShowProps) {
                     </div>
                 </div>
 
-                {/* Gated Posting Notice per DEC-008 */}
-                <div className="border-border/80 bg-muted/30 text-foreground flex items-center gap-3 rounded-lg border p-4">
-                    <ShieldAlert className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-                    <div className="text-sm">
-                        <span className="font-semibold">Pembukuan Saldo Ditangguhkan (DEC-008):</span> Alokasi pada halaman ini berstatus{' '}
-                        <strong>proposal / draft</strong>. Pembukuan resmi ke buku besar piutang (ledger posting) ditahan hingga aturan formula saldo
-                        piutang disetujui pemilik proses.
+                {/* Notice for allocations awaiting posting */}
+                {hasDraftAllocations && (
+                    <div className="text-foreground flex items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
+                        <ShieldAlert className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <div className="text-sm">
+                            <span className="font-semibold">Alokasi Belum Dibukukan:</span> Terdapat alokasi pembayaran yang berstatus{' '}
+                            <strong>draft / diajukan</strong>. Tekan tombol <strong>Posting Pembukuan</strong> pada tabel di bawah untuk memperbarui
+                            saldo piutang buku besar.
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Bank Transaction Overview */}
                 <div className="grid gap-6 lg:grid-cols-3">
@@ -185,14 +202,17 @@ export default function Show({ partner, agreement, payment }: ShowProps) {
                             <CardHeader className="pb-2">
                                 <CardDescription className="text-amber-700 dark:text-amber-400">Saldo Piutang Berjalan</CardDescription>
                                 <CardTitle className="font-mono text-xl text-amber-900 dark:text-amber-300">
-                                    {agreement.balance.total_remaining}
+                                    {typeof agreement.balance.total_remaining === 'number'
+                                        ? formatCurrency(agreement.balance.total_remaining)
+                                        : agreement.balance.total_remaining}
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="text-xs text-amber-800/80 dark:text-amber-300/80">
+                            <CardContent className="space-y-1 text-xs text-amber-800/80 dark:text-amber-300/80">
                                 <div>Status: {agreement.balance.label}</div>
-                                <p className="mt-1 text-[11px]">
-                                    Sesuai DEC-008: Nilai saldo piutang ditandai belum terverifikasi untuk mencegah angka fiktif.
-                                </p>
+                                {agreement.balance.as_of && <div>Evaluasi per: {new Date(agreement.balance.as_of).toLocaleString('id-ID')}</div>}
+                                <div className="text-muted-foreground text-[11px]">
+                                    Aturan: {agreement.balance.policy_version ?? 'Remaining Principal v1'}
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -253,6 +273,12 @@ export default function Show({ partner, agreement, payment }: ShowProps) {
                                                     <div className="text-muted-foreground text-xs">
                                                         Tgl Efektif: {alloc.effective_date ?? '-'} &bull; Periode: {alloc.period ?? '-'}
                                                     </div>
+                                                    {alloc.approved_at && (
+                                                        <div className="text-xs text-emerald-700 dark:text-emerald-400">
+                                                            Dibukukan: {new Date(alloc.approved_at).toLocaleString('id-ID')}
+                                                            {alloc.approved_by?.name ? ` (${alloc.approved_by.name})` : ''}
+                                                        </div>
+                                                    )}
                                                     {isCompensating && (
                                                         <span className="text-destructive text-xs font-medium">
                                                             Entri Kompensasi Pembalik (Reversal of: {alloc.reversal_of_id?.substring(0, 8)}...)
@@ -278,16 +304,30 @@ export default function Show({ partner, agreement, payment }: ShowProps) {
                                                 </td>
 
                                                 <td className="px-4 py-3 text-right">
-                                                    {!isReversed && !isCompensating && (
-                                                        <Button
-                                                            variant="destructive"
-                                                            size="sm"
-                                                            onClick={() => setReversingAllocationId(alloc.id)}
-                                                            className="inline-flex items-center gap-1 text-xs"
-                                                        >
-                                                            <RotateCcw className="h-3.5 w-3.5" /> Balikkan (Reverse)
-                                                        </Button>
-                                                    )}
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        {(alloc.state === 'draft' || alloc.state === 'submitted') && can_post && (
+                                                            <Button
+                                                                variant="default"
+                                                                size="sm"
+                                                                disabled={postingAllocationId === alloc.id}
+                                                                onClick={() => handlePostAllocation(alloc.id)}
+                                                                className="inline-flex items-center gap-1 text-xs"
+                                                            >
+                                                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                                                {postingAllocationId === alloc.id ? 'Memproses...' : 'Posting Pembukuan'}
+                                                            </Button>
+                                                        )}
+                                                        {!isReversed && !isCompensating && alloc.state === 'posted' && (
+                                                            <Button
+                                                                variant="destructive"
+                                                                size="sm"
+                                                                onClick={() => setReversingAllocationId(alloc.id)}
+                                                                className="inline-flex items-center gap-1 text-xs"
+                                                            >
+                                                                <RotateCcw className="h-3.5 w-3.5" /> Balikkan (Reverse)
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );

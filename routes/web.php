@@ -26,6 +26,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('partners/{partner}/agreements/{agreement}/payments/create', [PaymentController::class, 'create'])->name('payments.create');
     Route::post('partners/{partner}/agreements/{agreement}/payments', [PaymentController::class, 'store'])->name('payments.store');
     Route::get('partners/{partner}/agreements/{agreement}/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+    Route::post('partners/{partner}/agreements/{agreement}/payments/{payment}/allocations/{allocation}/post', [PaymentController::class, 'post'])->name('payments.post');
     Route::post('partners/{partner}/agreements/{agreement}/payments/{payment}/allocations/{allocation}/reverse', [PaymentController::class, 'reverse'])->name('payments.reverse');
 
     // Fund lots: ABT capture, listing, and identification per DEC-006 (FIMPL-008)
