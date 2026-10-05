@@ -407,6 +407,35 @@ describe('AllocationService per DEC-008 §6 (FIMPL-007)', function () {
         expect(fn () => $this->service->allocate($allocation, $agreement))
             ->toThrow(InvalidArgumentException::class, 'Payment allocation amount must be strictly positive');
     });
+
+    it('throws ScheduleIntegrityException when schedule has paid amount exceeding due', function () {
+        $agreement = Agreement::factory()->active()->create();
+
+        // Corrupted schedule row: interest_paid > interest_due
+        InstallmentSchedule::factory()->create([
+            'agreement_id' => $agreement->id,
+            'installment_number' => 1,
+            'due_date' => '2026-03-01',
+            'admin_charge_due' => 10_000,
+            'interest_due' => 20_000,
+            'other_charge_due' => 0,
+            'principal_due' => 200_000,
+            'total_due' => 230_000,
+            'admin_charge_paid' => 10_000,
+            'interest_paid' => 30_000, // 30k paid > 20k due!
+            'other_charge_paid' => 0,
+            'principal_paid' => 100_000,
+            'total_paid' => 140_000,
+            'status' => 'partially_paid',
+        ]);
+
+        $allocation = PaymentAllocation::factory()->make([
+            'total_amount' => 50_000,
+        ]);
+
+        expect(fn () => $this->service->allocate($allocation, $agreement))
+            ->toThrow(ScheduleIntegrityException::class, 'Schedule #1 integrity error: interest paid (30000) exceeds due (20000).');
+    });
 });
 
 describe('PaymentStagingService::post per DEC-008 & DEC-005', function () {
@@ -416,6 +445,7 @@ describe('PaymentStagingService::post per DEC-008 & DEC-005', function () {
 
     it('posts submitted allocation to receivable ledger without throwing NotApprovedException', function () {
         $user = User::factory()->operator()->create();
+        $user->grantPermission(Permission::PaymentPost);
 
         $agreement = Agreement::factory()->active()->create();
 
@@ -459,6 +489,7 @@ describe('PaymentStagingService::post per DEC-008 & DEC-005', function () {
 
     it('rejects posting an allocation not in draft or submitted state', function () {
         $user = User::factory()->operator()->create();
+        $user->grantPermission(Permission::PaymentPost);
         $allocation = PaymentAllocation::factory()->posted()->create();
 
         expect(fn () => $this->stagingService->post($allocation, $user))

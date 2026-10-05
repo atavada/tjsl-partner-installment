@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Enums\PaymentState;
 use App\Enums\Permission;
 use App\Enums\Role;
-use App\Exceptions\NotApprovedException;
 use App\Models\Agreement;
 use App\Models\AgreementDocument;
 use App\Models\AuditEvent;
@@ -396,8 +395,8 @@ describe('Authorization Failures and Unauthorized Access Audit', function () {
 
         try {
             $staging->post($allocation, $this->operator);
-            $this->fail('Expected NotApprovedException was not thrown.');
-        } catch (NotApprovedException) {
+            $this->fail('Expected AuthorizationException was not thrown.');
+        } catch (AuthorizationException) {
             // Expected
         }
 

@@ -97,11 +97,23 @@ class AllocationService
             // Calculate current paid amounts, accounting for reversals
             $paidComponents = $this->calculatePaidComponents($schedule, $allocation);
 
+            // Guard against corrupted or overpaid schedule components (PRD §4 invariant 1, DEC-008)
+            foreach (self::COMPONENT_PRIORITY as $comp) {
+                $dueField = "{$comp}_due";
+                $dueAmount = (int) $schedule->{$dueField};
+                $paidAmount = $paidComponents[$comp];
+                if ($paidAmount > $dueAmount) {
+                    throw new ScheduleIntegrityException(
+                        "Schedule #{$schedule->installment_number} integrity error: {$comp} paid ({$paidAmount}) exceeds due ({$dueAmount})."
+                    );
+                }
+            }
+
             $outMap = [
-                'admin_charge' => max(0, (int) $schedule->admin_charge_due - $paidComponents['admin_charge']),
-                'interest' => max(0, (int) $schedule->interest_due - $paidComponents['interest']),
-                'other_charge' => max(0, (int) $schedule->other_charge_due - $paidComponents['other_charge']),
-                'principal' => max(0, (int) $schedule->principal_due - $paidComponents['principal']),
+                'admin_charge' => (int) $schedule->admin_charge_due - $paidComponents['admin_charge'],
+                'interest' => (int) $schedule->interest_due - $paidComponents['interest'],
+                'other_charge' => (int) $schedule->other_charge_due - $paidComponents['other_charge'],
+                'principal' => (int) $schedule->principal_due - $paidComponents['principal'],
             ];
 
             $totalOut = array_sum($outMap);

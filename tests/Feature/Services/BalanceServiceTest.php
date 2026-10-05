@@ -284,6 +284,74 @@ describe('BalanceService::getBalance per DEC-008 (Formula Implementation)', func
             );
     });
 
+    it('surfaces exception status when an individual component is negative despite positive total (TASK-REM-004)', function () {
+        $agreement = Agreement::factory()->active()->create([
+            'principal_amount' => 5_000_000,
+            'interest_amount' => 200_000,
+            'admin_charge_amount' => 50_000,
+            'other_charge_amount' => 0,
+            'total_amount' => 5_250_000,
+        ]);
+
+        // Overpayment on interest component specifically: 300k interest paid on 200k contract
+        PaymentAllocation::factory()->posted()->create([
+            'agreement_id' => $agreement->id,
+            'bank_transaction_id' => BankTransaction::factory()->create(['amount' => 1_300_000])->id,
+            'effective_date' => '2026-03-10',
+            'principal_amount' => 1_000_000,
+            'interest_amount' => 300_000, // Negative remaining: 200k - 300k = -100k
+            'admin_charge_amount' => 0,
+            'other_charge_amount' => 0,
+            'total_amount' => 1_300_000,
+        ]);
+
+        $balance = $this->service->getBalance($agreement);
+
+        expect($balance['status'])->toBe('exception')
+            ->and($balance['interest_remaining'])->toBe(-100_000)
+            ->and($balance['principal_remaining'])->toBe(4_000_000)
+            ->and($balance['total_remaining'])->toBe(3_950_000) // Total is positive, but component is negative!
+            ->and($balance['warnings'])->toContain(
+                'Terdeteksi saldo negatif pada komponen piutang (data error). Saldo tidak di-floor ke 0 (DEC-008).'
+            );
+    });
+
+    it('surfaces exception status when linked schedule has overpaid components (TASK-REM-004)', function () {
+        $agreement = Agreement::factory()->active()->create([
+            'principal_amount' => 5_000_000,
+            'interest_amount' => 200_000,
+            'admin_charge_amount' => 50_000,
+            'other_charge_amount' => 0,
+            'total_amount' => 5_250_000,
+        ]);
+
+        // Create corrupted installment schedule
+        InstallmentSchedule::factory()->create([
+            'agreement_id' => $agreement->id,
+            'installment_number' => 1,
+            'due_date' => '2026-03-01',
+            'principal_due' => 500_000,
+            'interest_due' => 20_000,
+            'admin_charge_due' => 5_000,
+            'other_charge_due' => 0,
+            'total_due' => 525_000,
+            'principal_paid' => 500_000,
+            'interest_paid' => 50_000, // 50k paid > 20k due!
+            'admin_charge_paid' => 5_000,
+            'other_charge_paid' => 0,
+            'total_paid' => 555_000,
+            'status' => 'paid',
+        ]);
+
+        $balance = $this->service->getBalance($agreement);
+
+        expect($balance['status'])->toBe('exception')
+            ->and($balance['label'])->toBe('Pengecualian Saldo (Data Error)')
+            ->and($balance['warnings'])->toContain(
+                'Terdeteksi baris jadwal angsuran dengan pembayaran melebihi kewajiban (schedule overpayment integrity error).'
+            );
+    });
+
     it('determines LUNAS when all remaining components are zero and data is verified', function () {
         $agreement = Agreement::factory()->active()->create([
             'principal_amount' => 5_000_000,

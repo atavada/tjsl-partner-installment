@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Enums\AgreementLifecycleStatus;
 use App\Enums\PaymentState;
 use App\Models\Agreement;
+use App\Models\InstallmentSchedule;
 use App\Models\PaymentAllocation;
 use App\Models\ReceivableAdjustment;
 use Carbon\CarbonInterface;
@@ -224,18 +225,41 @@ class BalanceService
 
         // Invariant: Posting must never produce remaining_P < 0 or remaining_C < 0.
         // If a negative appears (data error), surface as an explicit exception state. Do not floor.
-        $hasNegative = $remainingP < 0 || $remainingC < 0;
+        $hasNegative = $remainingP < 0
+            || $remainingC < 0
+            || $remainingInterest < 0
+            || $remainingAdmin < 0
+            || $remainingOther < 0;
+
         if ($hasNegative) {
             $warnings[] = 'Terdeteksi saldo negatif pada komponen piutang (data error). Saldo tidak di-floor ke 0 (DEC-008).';
         }
 
+        // Check if any linked installment schedule has overpaid components (PRD §4 invariant 1, TASK-REM-004)
+        $hasCorruptedSchedules = InstallmentSchedule::where('agreement_id', $agreementId)
+            ->where(function ($query): void {
+                $query->whereColumn('principal_paid', '>', 'principal_due')
+                    ->orWhereColumn('interest_paid', '>', 'interest_due')
+                    ->orWhereColumn('admin_charge_paid', '>', 'admin_charge_due')
+                    ->orWhereColumn('other_charge_paid', '>', 'other_charge_due')
+                    ->orWhereColumn('total_paid', '>', 'total_due');
+            })
+            ->exists();
+
+        if ($hasCorruptedSchedules) {
+            $warnings[] = 'Terdeteksi baris jadwal angsuran dengan pembayaran melebihi kewajiban (schedule overpayment integrity error).';
+        }
+
+        $hasIntegrityError = $hasNegative || $hasCorruptedSchedules;
+
         // LUNAS rule: is_lunas(as_of) = data_verified AND remaining(as_of) == 0 AND remaining_P == 0 AND remaining_C == 0
         $isLunas = $isDataVerified
+            && ! $hasIntegrityError
             && $remainingTotal === 0
             && $remainingP === 0
             && $remainingC === 0;
 
-        if ($hasNegative) {
+        if ($hasIntegrityError) {
             $status = 'exception';
             $label = 'Pengecualian Saldo (Data Error)';
         } elseif (! $isDataVerified) {
