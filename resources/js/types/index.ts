@@ -41,6 +41,10 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const getRoleLabel = (role: Role): string => ROLE_LABELS[role] ?? role;
 
+export * from './dashboard';
+export * from './metric-definition';
+export * from './receivable';
+
 export interface User {
     id: number;
     name: string;

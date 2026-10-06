@@ -15,6 +15,7 @@ use App\Models\AuditEvent;
 use App\Models\BankTransaction;
 use App\Models\FundLot;
 use App\Models\InstallmentSchedule;
+use App\Models\MetricDefinition;
 use App\Models\Partner;
 use App\Models\PartnerAlias;
 use App\Models\PaymentAllocation;
@@ -76,6 +77,9 @@ describe('Synthetic Database Seeder (TASK-009 / PRD §9 Gate)', function () {
         expect(BankTransaction::count())->toBeGreaterThanOrEqual(6);
         expect(PaymentAllocation::count())->toBeGreaterThanOrEqual(6);
         expect(FundLot::count())->toBeGreaterThanOrEqual(2);
+
+        // Metric definitions exist per PRD §4 & §9
+        expect(MetricDefinition::count())->toBeGreaterThanOrEqual(10);
 
         // Audit events exist with append-only immutability
         expect(AuditEvent::count())->toBeGreaterThanOrEqual(5);

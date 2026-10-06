@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AgreementController;
 use App\Http\Controllers\AgreementDocumentController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FundLotController;
 use App\Http\Controllers\PartnerController;
 use App\Http\Controllers\PaymentController;
@@ -13,9 +14,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('partners', [PartnerController::class, 'index'])->name('partners.index');
     Route::get('partners/{partner}', [PartnerController::class, 'show'])->name('partners.show');

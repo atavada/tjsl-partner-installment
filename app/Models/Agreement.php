@@ -167,6 +167,11 @@ class Agreement extends Model
         return mb_strtoupper(trim($value));
     }
 
+    public function isActive(): bool
+    {
+        return $this->lifecycle_status === AgreementLifecycleStatus::Active;
+    }
+
     public function isPaidOff(): bool
     {
         return $this->lifecycle_status === AgreementLifecycleStatus::PaidOff;
