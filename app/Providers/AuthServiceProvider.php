@@ -7,15 +7,19 @@ namespace App\Providers;
 use App\Enums\Permission;
 use App\Models\Agreement;
 use App\Models\BankTransaction;
+use App\Models\ExportJob;
 use App\Models\FundLot;
 use App\Models\Partner;
 use App\Models\PaymentAllocation;
+use App\Models\ReconciliationCase;
 use App\Models\User;
 use App\Models\VirtualAccount;
 use App\Policies\AgreementPolicy;
+use App\Policies\ExportJobPolicy;
 use App\Policies\FundLotPolicy;
 use App\Policies\PartnerPolicy;
 use App\Policies\PaymentPolicy;
+use App\Policies\ReconciliationCasePolicy;
 use App\Policies\VirtualAccountPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
@@ -34,6 +38,8 @@ class AuthServiceProvider extends ServiceProvider
         Agreement::class => AgreementPolicy::class,
         BankTransaction::class => PaymentPolicy::class,
         PaymentAllocation::class => PaymentPolicy::class,
+        ReconciliationCase::class => ReconciliationCasePolicy::class,
+        ExportJob::class => ExportJobPolicy::class,
     ];
 
     /**

@@ -66,4 +66,12 @@ class NotApprovedException extends RuntimeException
     {
         return new self('Second review requirement configuration is blocked pending DEC-005 approval.');
     }
+
+    /**
+     * Phase B gate prerequisite guard (PRD §8, §9).
+     */
+    public static function forPhaseBGate(string $reason = 'Live workbook/banking feed ingestion is blocked pending Phase B gate approval per PRD §9.'): self
+    {
+        return new self($reason);
+    }
 }
